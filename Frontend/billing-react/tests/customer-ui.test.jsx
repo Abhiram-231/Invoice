@@ -45,20 +45,15 @@ test('B12: selected outstanding filter is visible in the closed dropdown', () =>
   assert.match(html, /value="Has Outstanding"/);
 });
 
-test('B02/B03: unsupported values are disabled, while edit status remains available', () => {
-  const disabled = (html, id) => new RegExp(`<(?:input|select)[^>]*id="${id}"[^>]*disabled`).test(html);
+test('B02/B03: unsupported values are absent, while edit status remains available', () => {
   const create = render(<CustomerForm mode="create" onSubmit={() => {}} />);
   const edit = render(<CustomerForm mode="edit" onSubmit={() => {}} />);
   for (const html of [create, edit]) {
-    assert.ok(disabled(html, 'customer-credit-limit'));
-    assert.ok(disabled(html, 'customer-opening-balance'));
-    assert.match(html, /does not support saving them/);
-    assert.match(html, /billingAddress-addressLine2/);
-    assert.match(html, /shippingAddress-addressLine2/);
+    assert.doesNotMatch(html, /customer-credit-limit|customer-opening-balance/);
   }
-  assert.ok(disabled(create, 'customer-status'));
-  assert.equal(disabled(edit, 'customer-status'), false);
-  assert.match(create, /Initial status is assigned/);
+  assert.doesNotMatch(create, /id="customer-status"/);
+  assert.match(create, /New customers are active when created/);
+  assert.match(edit, /id="customer-status"/);
 });
 test('address cards render missing state and supplied default indicator', () => {
   const data = record();

@@ -4,6 +4,7 @@ export const AddressSection = ({
   register,
   errors = {},
   disabled = false,
+  country = 'India',
   values = {},
   onChange,
 }) => {
@@ -122,7 +123,9 @@ export const AddressSection = ({
           <input
             id={getFieldId('postalCode')}
             type="text"
-            placeholder="e.g. 500081"
+            inputMode={country === 'India' ? 'numeric' : 'text'}
+            autoComplete="postal-code"
+            placeholder={country === 'India' ? '6-digit PIN (e.g. 500081)' : 'Postal code'}
             disabled={disabled}
             aria-invalid={Boolean(postalCodeError)}
             aria-describedby={postalCodeError ? `${getFieldId('postalCode')}-err` : undefined}

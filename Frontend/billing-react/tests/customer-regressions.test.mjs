@@ -87,6 +87,12 @@ test('B08: Customer HTTP errors are not network errors; unrelated modules keep e
   assert.equal(getUserFriendlyError({ config: { url: '/api/v1/customers' }, code: 'ERR_NETWORK' }), 'Network Error');
 });
 
+test('summary 404 is not described as a missing customer profile', () => {
+  const error = { config: { url: '/api/v1/customers/summary' }, response: { status: 404, data: { message: 'The requested customer was not found.' } } };
+  assert.equal(getUserFriendlyError(error), 'Customer summary is not available from the server.');
+  assert.equal(getUserFriendlyError({ ...error, config: { url: '/api/v1/customers/7' } }), 'The requested customer was not found.');
+});
+
 test('B09: raw and structured diagnostic bodies are suppressed, safe validation retained', () => {
   for (const text of ['<html>private</html>', 'System.Exception: failure at Controller.Save()', 'SELECT password FROM users', 'SQLSTATE 42000', 'Violation of UNIQUE KEY constraint customer_ix', 'Traceback: server failed', '&lt;script&gt;alert(1)&lt;/script&gt;']) {
     for (const data of [text, { message: text }, { errors: { customer: [text] } }]) {

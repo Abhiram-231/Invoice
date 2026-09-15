@@ -276,7 +276,10 @@ export const CustomerForm = ({
     return fields;
   };
 
-  const handleNextStep = async () => {
+  const handleNextStep = async (event) => {
+    // Cancel the click's native default before validation changes the final
+    // navigation button into the Review step's submit button.
+    event?.preventDefault();
     const fieldsToValidate = getStepValidationFields(currentStep);
     const isValid = await trigger(fieldsToValidate);
     if (isValid) {
@@ -390,9 +393,11 @@ export const CustomerForm = ({
   };
 
   const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') {
+      // A field's Enter key must not implicitly activate the Review step's
+      // submit button. Keyboard users can still activate that button directly.
+      e.preventDefault();
       if (currentStep < STEPS.length - 1) {
-        e.preventDefault();
         handleNextStep();
       }
     }
@@ -400,6 +405,13 @@ export const CustomerForm = ({
 
   const currentStepData = STEPS[currentStep];
   const StepHeaderIcon = currentStepData.icon;
+  const handleFormSubmit = (event) => {
+    if (currentStep !== STEPS.length - 1 || event.nativeEvent?.submitter?.dataset?.customerAction !== 'submit') {
+      event.preventDefault();
+      return;
+    }
+    return handleSubmit(handleValidSubmit, handleInvalidSubmit)(event);
+  };
 
   return (
     <div className="cust-wizard-container">
@@ -439,7 +451,7 @@ export const CustomerForm = ({
         {/* Main Form Card */}
         <div className="cust-wizard-main">
           <form
-            onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+            onSubmit={handleFormSubmit}
             onKeyDown={handleKeyDown}
             className="cust-form cust-wizard-card"
             noValidate
@@ -543,32 +555,9 @@ export const CustomerForm = ({
                   )}
                 </div>
 
-                <div className="cust-field">
-                  <label htmlFor="customer-type">Customer Type</label>
-                  <div className="cust-input-with-icon">
-                    <span className="cust-input-icon" aria-hidden="true">
-                      <GroupsOutlined />
-                    </span>
-                    <select
-                      id="customer-type"
-                      aria-invalid={Boolean(errors.customerType)}
-                      {...register('customerType')}
-                    >
-                      <option value="business">Business</option>
-                      <option value="individual">Individual</option>
-                      <option value="organization">Organization</option>
-                    </select>
-                  </div>
-                  {errors.customerType && (
-                    <span className="cust-field-error" role="alert">
-                      {errors.customerType.message}
-                    </span>
-                  )}
-                </div>
-
                 <div className="cust-field cust-col-span-2">
                   <label htmlFor="customer-status">Account Status</label>
-                  <div className="cust-status-select-wrap">
+                  {mode === 'create' ? <p className="cust-hint">New customers are active when created.</p> : <div className="cust-status-select-wrap">
                     <span
                       className={`cust-status-dot ${
                         watch('status') === 'Active' ? 'active' : 'inactive'
@@ -577,20 +566,14 @@ export const CustomerForm = ({
                     />
                     <select
                       id="customer-status"
-                      disabled={mode === 'create'}
-                      aria-describedby={mode === 'create' ? 'customer-status-help' : undefined}
                       aria-invalid={Boolean(errors.status)}
                       {...register('status')}
                     >
                       <option value="Active">Active</option>
                       <option value="Inactive">Inactive</option>
                     </select>
-                  </div>
-                  {mode === 'create' && (
-                    <span id="customer-status-help" className="cust-hint">
-                      Initial status is assigned when the customer is created. Status can be changed when editing.
-                    </span>
-                  )}
+                  </div>}
+
                   {errors.status && (
                     <span className="cust-field-error" role="alert">
                       {errors.status.message}
@@ -706,7 +689,7 @@ export const CustomerForm = ({
                     {...register('taxRegistrationType')}
                   >
                     <option value="gst">GST Registered</option>
-                    <option value="pan">PAN / Tax ID Available</option>
+                    <option value="pan">PAN Available</option>
                     <option value="non-gst">Non-GST / Unregistered</option>
                   </select>
                   {errors.taxRegistrationType && (
@@ -724,7 +707,7 @@ export const CustomerForm = ({
                       </>
                     ) : taxRegistrationType === 'pan' ? (
                       <>
-                        PAN / Registration ID <span className="cust-required">*</span>
+                        PAN (10 characters) <span className="cust-required">*</span>
                       </>
                     ) : (
                       'Tax ID (Optional)'
@@ -745,7 +728,7 @@ export const CustomerForm = ({
                           ? 'e.g. ABCDE1234F'
                           : 'Not applicable for non-GST'
                       }
-                      maxLength={64}
+                      maxLength={taxRegistrationType === 'gst' ? 15 : taxRegistrationType === 'pan' ? 10 : 64}
                       aria-invalid={Boolean(errors.taxId)}
                       aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
                       {...register('taxId')}
@@ -798,34 +781,6 @@ export const CustomerForm = ({
                   )}
                 </div>
 
-                <div className="cust-field">
-                  <label htmlFor="customer-credit-limit">Approved Credit Limit</label>
-                  <input
-                    id="customer-credit-limit"
-                    type="number"
-                    min="0"
-                    step="any"
-                    placeholder="Not available"
-                    disabled
-                    readOnly
-                    value={initialValues?.creditLimit ?? ''}
-                  />
-                  <span className="cust-hint">Managed in financial settings</span>
-                </div>
-
-                <div className="cust-field">
-                  <label htmlFor="customer-opening-balance">Opening Balance</label>
-                  <input
-                    id="customer-opening-balance"
-                    type="number"
-                    step="any"
-                    placeholder="Not available"
-                    disabled
-                    readOnly
-                    value={initialValues?.openingBalance ?? ''}
-                  />
-                  <span className="cust-hint">Managed in financial settings</span>
-                </div>
               </div>
             )}
 
@@ -838,6 +793,7 @@ export const CustomerForm = ({
                     title="Billing Address Details"
                     register={register}
                     errors={errors}
+                    country={billingAddress?.country}
                   />
                 </div>
 
@@ -859,6 +815,7 @@ export const CustomerForm = ({
                     register={register}
                     errors={errors}
                     disabled={isShippingSameAsBilling}
+                    country={watchedValues.shippingAddress?.country}
                   />
                 </div>
               </div>
@@ -891,15 +848,6 @@ export const CustomerForm = ({
                     <div className="cust-review-row">
                       <span className="cust-review-label">Company Name</span>
                       <span className="cust-review-value">{watchedValues.companyName || '—'}</span>
-                    </div>
-                    <div className="cust-review-row">
-                      <span className="cust-review-label">Customer Type</span>
-                      <span className="cust-review-value">
-                        {watchedValues.customerType
-                          ? watchedValues.customerType.charAt(0).toUpperCase() +
-                            watchedValues.customerType.slice(1)
-                          : 'Business'}
-                      </span>
                     </div>
                     <div className="cust-review-row">
                       <span className="cust-review-label">Account Status</span>
@@ -1076,7 +1024,9 @@ export const CustomerForm = ({
               <div className="cust-actions-right">
                 {currentStep < STEPS.length - 1 ? (
                   <button
+                    key="customer-next"
                     type="button"
+                    data-customer-action="next"
                     className="cust-btn cust-btn-primary"
                     onClick={handleNextStep}
                     disabled={isSubmitting}
@@ -1085,7 +1035,9 @@ export const CustomerForm = ({
                   </button>
                 ) : (
                   <button
+                    key="customer-submit"
                     type="submit"
+                    data-customer-action="submit"
                     className="cust-btn cust-btn-primary"
                     disabled={isSubmitting}
                   >

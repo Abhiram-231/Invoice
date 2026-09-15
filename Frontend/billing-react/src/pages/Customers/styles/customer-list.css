@@ -196,3 +196,29 @@
 .customers-page .customer-table .MuiTableCell-root { font-size: .8rem; }
 .customers-page .customer-table .MuiTableCell-body,
 .customers-page .customer-identity a { color: var(--text-primary); }
+
+/* Keep wide directory columns inside their own scroll area. */
+.customers-page { min-width: 0; max-width: 100%; overflow-x: clip; }
+.customers-page .customer-panel { min-width: 0; max-width: 100%; container: customer-directory / inline-size; }
+.customers-page .customer-table { width: 100%; max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; }
+@media (min-width: 601px) {
+  .customers-page .customer-table .MuiTable-root { width: 100%; min-width: 920px; }
+  .customers-page .customer-identity { min-width: 0; }
+  .customers-page .customer-contact { overflow-wrap: anywhere; }
+}
+@container customer-directory (max-width: 919px) {
+  .customers-page .customer-table { overflow-x: hidden; }
+  .customers-page .customer-table .MuiTable-root { min-width: 0; display: block; }
+  .customers-page .customer-table thead { display: none; }
+  .customers-page .customer-table tbody { display: grid; gap: 12px; padding: 12px; background: var(--bg-main); }
+  .customers-page .customer-table .MuiTableRow-root { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; }
+  .customers-page .customer-table .MuiTableCell-body { display: block; min-width: 0; padding: 8px; border: 0; text-align: left; overflow-wrap: anywhere; }
+  .customers-page .customer-table .MuiTableCell-body::before { content: attr(data-label); display: block; margin-bottom: 5px; color: var(--text-secondary); font-size: .8rem; }
+  .customers-page .customer-table .MuiTableCell-body:nth-child(2) { grid-column: 1 / -1; grid-row: 1; }
+  .customers-page .customer-table .MuiTableCell-body:nth-child(2)::before { display: none; }
+  .customers-page .customer-table .MuiTableCell-body:nth-child(5),
+  .customers-page .customer-table .MuiTableCell-body:last-child { grid-column: 1 / -1; }
+  .customers-page .customer-table .MuiTableCell-body:last-child { position: static; box-shadow: none; border-top: 1px solid var(--border); }
+  .customers-page .customer-table .MuiTableCell-body:last-child::before { display: none; }
+  .customers-page .customer-row-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; }
+}

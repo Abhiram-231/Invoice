@@ -11,8 +11,8 @@ const money = (key, label) => ({
   money: true,
   render: (row) =>
     formatCurrency(
-      row[key] ?? row.amount ?? row.paymentAmount ?? row.amountPaid ?? row.totalAmount ?? 0,
-      row.currency || 'INR'
+      row[key],
+      row.currency
     ),
 });
 const date = (key, label) => ({ key, label, render: (row) => displayDate(row[key]) });
@@ -23,8 +23,9 @@ const statusColumn = { key: 'status', label: 'Status', render: (row) => <StatusB
 function TransactionTable({ kind, rows }) {
   const [selected, setSelected] = useState(null);
   const invoice = kind === 'Invoice';
-  const columns = invoice ? [{ key: 'invoiceNumber', label: 'Invoice Number' }, date('date', 'Invoice Date'), date('dueDate', 'Due Date'), money('amount', 'Amount'), money('paid', 'Paid Amount'), money('balance', 'Balance'), statusColumn] : [{ key: 'paymentNumber', label: 'Payment ID' }, date('date', 'Payment Date'), { key: 'method', label: 'Payment Method' }, { key: 'reference', label: 'Reference Number' }, { key: 'invoiceNumber', label: 'Invoice Number' }, money('amount', 'Amount'), statusColumn];
-  return <><CustomerTable title={`${kind}s`} rows={rows} columns={[...columns, { key: 'action', label: 'Action', sortable: false, render: (row) => <Button size="small" onClick={() => setSelected(row)} aria-label={`View ${kind} ${row.id}`}>View {kind}</Button> }]} selects={[{ key: 'status', label: 'Status', options: invoice ? invoiceStatuses : paymentStatuses }]} />
+  const candidates = invoice ? [{ key: 'invoiceNumber', label: 'Invoice Number' }, date('date', 'Invoice Date'), date('dueDate', 'Due Date'), money('amount', 'Amount'), money('paid', 'Paid Amount'), money('balance', 'Balance'), statusColumn] : [{ key: 'paymentNumber', label: 'Payment Reference' }, date('date', 'Payment Date'), { key: 'method', label: 'Method' }, { key: 'reference', label: 'Reference Number' }, { key: 'invoiceNumber', label: 'Invoice Number' }, money('amount', 'Amount'), statusColumn];
+  const columns = candidates.filter(column => !rows.length || rows.some(row => row[column.key] != null && row[column.key] !== ''));
+  return <><CustomerTable title={`${kind}s`} emptyMessage={`No ${kind.toLowerCase()}s found for this customer.`} rows={rows} columns={[...columns, { key: 'action', label: 'Action', sortable: false, render: (row) => <Button size="small" onClick={() => setSelected(row)} aria-label={`View ${kind} ${row.id}`}>View {kind}</Button> }]} selects={[{ key: 'status', label: 'Status', options: invoice ? invoiceStatuses : paymentStatuses }]} />
     <Dialog open={Boolean(selected)} onClose={() => setSelected(null)} fullWidth maxWidth="sm" aria-labelledby="customer-transaction-title"><DialogTitle id="customer-transaction-title">{kind} Details</DialogTitle><DialogContent className="customer-page customer-dialog-content">{selected && <InformationCard title={String(selected.invoiceNumber || selected.paymentNumber || selected.id)} fields={columns.map((column) => [column.label, column.render ? column.render(selected) : selected[column.key]])} />}</DialogContent><DialogActions><Button onClick={() => setSelected(null)}>Close</Button></DialogActions></Dialog>
   </>;
 }

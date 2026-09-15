@@ -132,14 +132,14 @@ export function mapDetails(data) {
     invoices: invoicesList.map((r) => ({
       ...r,
       date: r.issueDate || r.date || r.Date,
-      amount: r.amount ?? r.totalAmount ?? r.TotalAmount ?? 0,
-      paid: r.paid ?? r.amountPaid ?? r.AmountPaid ?? 0,
-      balance: r.balance ?? r.balanceDue ?? r.BalanceDue ?? 0,
+      amount: r.amount ?? r.totalAmount ?? r.TotalAmount ?? null,
+      paid: r.paid ?? r.amountPaid ?? r.AmountPaid ?? null,
+      balance: r.balance ?? r.balanceDue ?? r.BalanceDue ?? null,
       currency:
         r.currency ??
         data.financialSummary?.currency ??
         data.customer?.currency ??
-        "INR",
+        null,
     })),
     payments: paymentsList.map((r) => ({
       ...r,
@@ -149,7 +149,7 @@ export function mapDetails(data) {
         r.PaymentNumber ??
         r.paymentId ??
         r.PaymentId ??
-        (r.id ? `PAY-${r.id}` : "—"),
+        null,
       date:
         r.date ??
         r.Date ??
@@ -167,7 +167,7 @@ export function mapDetails(data) {
       invoiceNumber:
         r.invoiceNumber ??
         r.InvoiceNumber ??
-        (r.invoiceId ? `INV-${r.invoiceId}` : "—"),
+        null,
       amount:
         r.amount ??
         r.Amount ??
@@ -177,19 +177,19 @@ export function mapDetails(data) {
         r.AmountPaid ??
         r.totalAmount ??
         r.TotalAmount ??
-        0,
+        null,
       status:
         r.status ??
         r.Status ??
         r.paymentStatus ??
         r.PaymentStatus ??
-        "Completed",
+        null,
       currency:
         r.currency ??
         r.Currency ??
         data.financialSummary?.currency ??
         data.customer?.currency ??
-        "INR",
+        null,
     })),
   };
 }

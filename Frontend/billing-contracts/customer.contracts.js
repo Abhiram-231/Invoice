@@ -53,53 +53,17 @@ export const createCustomerRequest = (data = {}) => {
     formattedWebsite = `https://${formattedWebsite}`;
   }
 
-  const rawCustomerType = String(
-    data.customerType ?? data.CustomerType ?? 'business'
-  ).trim().toLowerCase();
-  const normalizedCustomerType = ['individual', 'business', 'organization'].includes(rawCustomerType)
-    ? rawCustomerType
-    : 'business';
-  const titleCaseCustomerType =
-    normalizedCustomerType.charAt(0).toUpperCase() + normalizedCustomerType.slice(1);
-
-  const effectiveCreditLimit =
-    data.creditLimit !== '' && data.creditLimit !== null && data.creditLimit !== undefined
-      ? Number(data.creditLimit)
-      : data.CreditLimit !== '' && data.CreditLimit !== null && data.CreditLimit !== undefined
-      ? Number(data.CreditLimit)
-      : null;
-  const effectiveOpeningBalance =
-    data.openingBalance !== '' && data.openingBalance !== null && data.openingBalance !== undefined
-      ? Number(data.openingBalance)
-      : data.OpeningBalance !== '' && data.OpeningBalance !== null && data.OpeningBalance !== undefined
-      ? Number(data.OpeningBalance)
-      : data.outstandingBalance !== '' && data.outstandingBalance !== null && data.outstandingBalance !== undefined
-      ? Number(data.outstandingBalance)
-      : data.OutstandingBalance !== '' && data.OutstandingBalance !== null && data.OutstandingBalance !== undefined
-      ? Number(data.OutstandingBalance)
-      : null;
-
   return {
     customerCode: data.customerCode?.trim() || null,
     name: data.name?.trim() || '',
     email: data.email?.trim() || '',
     phone: data.phone?.trim() || null,
     companyName: data.companyName?.trim() || null,
-    customerType: titleCaseCustomerType,
-    CustomerType: titleCaseCustomerType,
-    creditLimit: effectiveCreditLimit,
-    CreditLimit: effectiveCreditLimit,
-    openingBalance: effectiveOpeningBalance,
-    OpeningBalance: effectiveOpeningBalance,
-    outstandingBalance: effectiveOpeningBalance,
-    OutstandingBalance: effectiveOpeningBalance,
     taxId: (data.taxId || data.gstin)?.trim() || null,
     currency: (data.currency?.trim() || data.Currency?.trim() || 'INR').toUpperCase(),
-    Currency: (data.currency?.trim() || data.Currency?.trim() || 'INR').toUpperCase(),
     notes: data.notes?.trim() || null,
     website: formattedWebsite,
     paymentTerms: data.paymentTerms?.trim() || data.PaymentTerms?.trim() || null,
-    PaymentTerms: data.paymentTerms?.trim() || data.PaymentTerms?.trim() || null,
     address: billing.street?.trim() || null,
     city: billing.city?.trim() || null,
     state: billing.state?.trim() || null,
@@ -393,6 +357,8 @@ export const parseCustomerError = (
   if (error.response) {
     const { status, data } = error.response;
     if (status >= 500) return 'Server Error. Please try again.';
+    if (status === 404 && /\/api\/v1\/customers\/summary(?:[/?]|$)/i.test(error.config?.url || ''))
+      return 'Customer summary is not available from the server.';
     const fallbacks = {
       400: 'Invalid customer data. Please review the highlighted fields.',
       401: 'Session expired. Please sign in again.',

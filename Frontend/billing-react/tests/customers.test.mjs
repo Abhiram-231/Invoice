@@ -34,6 +34,21 @@ test('details keep backend totals and empty histories, and map nested addresses'
   assert.equal(data.customer.billingAddress.line1, 'Main'); assert.equal(data.customer.shippingAddress, null);
   assert.equal(data.customer.status, 'Inactive');
 });
+
+test('PAN and Indian billing/shipping PINs require their exact formats', async () => {
+  const values = { taxRegistrationType: 'pan', taxId: 'ABCDE1234F', billingAddress: { country: 'India', postalCode: '500081' }, shippingAddress: { country: 'India', postalCode: '500081' }, isShippingSameAsBilling: false };
+  assert.equal(await customerValidationSchema.validateAt('taxId', values), 'ABCDE1234F');
+  for (const taxId of ['ABCDE123F', 'ABCDE12345F', '1234567890'])
+    await assert.rejects(customerValidationSchema.validateAt('taxId', { ...values, taxId }), /10-character PAN/);
+  for (const path of ['billingAddress.postalCode', 'shippingAddress.postalCode']) {
+    assert.equal(await customerValidationSchema.validateAt(path, values), '500081');
+    for (const postalCode of ['50008', '5000812', '50A081', '000081']) {
+      const addressKey = path.split('.')[0];
+      await assert.rejects(customerValidationSchema.validateAt(path, { ...values, [addressKey]: { country: 'India', postalCode } }), /6 digits/);
+    }
+  }
+  assert.equal(await customerValidationSchema.validateAt('billingAddress.postalCode', { ...values, billingAddress: { country: 'United Kingdom', postalCode: 'SW1A 1AA' } }), 'SW1A 1AA');
+});
 test('numeric IDs validate before any request', async () => {
   assert.equal(validCustomerId('1'), true);
   for (const id of ['ACME-1', '0', '-1', '1.5', '9007199254740992']) await assert.rejects(getCustomerById(id), { code: 'INVALID_ID' });
@@ -184,7 +199,7 @@ test('getNextCustomerCode computes sequential CUST-001, CUST-002 and customerCod
     (err) => err.message.includes('GSTIN is required')
   );
 
-  // Validate that PAN / Registration ID is mandatory when taxRegistrationType is pan
+  // Validate that PAN is mandatory when taxRegistrationType is pan
   assert.throws(
     () => {
       customerValidationSchema.validateSync({
@@ -202,7 +217,7 @@ test('getNextCustomerCode computes sequential CUST-001, CUST-002 and customerCod
         },
       });
     },
-    (err) => err.message.includes('PAN / Registration ID is required')
+    (err) => err.message.includes('PAN is required')
   );
 });
 

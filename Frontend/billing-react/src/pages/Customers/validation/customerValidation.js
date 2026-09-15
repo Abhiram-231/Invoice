@@ -4,6 +4,8 @@ const EMAIL_REGEX = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
 const PHONE_REGEX = /^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s./0-9]*$/;
 const POSTAL_REGEX = /^[A-Za-z0-9\s-]{3,16}$/;
 const TAX_ID_REGEX = /^[A-Za-z0-9\s-]{3,64}$/;
+const INDIA_PIN_REGEX = /^[1-9][0-9]{5}$/;
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/i;
 const URL_REGEX = /^(https?:\/\/)?([a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?\.)+[a-zA-Z]{2,}(:\d+)?(\/[^\s]*)?$/i;
 
 export const customerValidationSchema = yup.object({
@@ -97,10 +99,10 @@ export const customerValidationSchema = yup.object({
       }
       if (type === 'pan') {
         return schema
-          .required('PAN / Registration ID is required')
-          .test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
+          .required('PAN is required')
+          .test('pan-format', 'Enter a valid 10-character PAN (e.g. ABCDE1234F)', (val) => {
             if (!val || val.trim() === '') return false;
-            return TAX_ID_REGEX.test(val.trim());
+            return PAN_REGEX.test(val.trim());
           });
       }
       return schema
@@ -135,8 +137,10 @@ export const customerValidationSchema = yup.object({
       .trim()
       .required('Billing postal code is required')
       .max(32, 'Postal code must not exceed 32 characters')
-      .test('billing-postal-format', 'Enter a valid postal code', (val) => {
+      .test('billing-postal-format', 'Enter a valid postal code', function (val) {
         if (!val || val.trim() === '') return true;
+        if (this.parent.country === 'India')
+          return INDIA_PIN_REGEX.test(val.trim()) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
         return POSTAL_REGEX.test(val.trim());
       }),
     country: yup
@@ -173,8 +177,10 @@ export const customerValidationSchema = yup.object({
           .trim()
           .required('Shipping postal code is required')
           .max(32, 'Postal code must not exceed 32 characters')
-          .test('shipping-postal-format', 'Enter a valid postal code', (val) => {
+          .test('shipping-postal-format', 'Enter a valid postal code', function (val) {
             if (!val || val.trim() === '') return true;
+            if (this.parent.country === 'India')
+              return INDIA_PIN_REGEX.test(val.trim()) || this.createError({ message: 'Enter exactly 6 digits for the Indian PIN code' });
             return POSTAL_REGEX.test(val.trim());
           }),
         country: yup

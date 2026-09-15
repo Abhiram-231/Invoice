@@ -2,6 +2,15 @@
 .customer-page h1 { font-size: clamp(1.5rem, 2.3vw, 2rem); line-height: 1.25; margin: 10px 0; overflow-wrap: anywhere; }
 .customer-page h2 { font-size: 1rem; font-weight: 700; margin: 0 0 20px; color: var(--primary); }
 .customer-page p { color: var(--text-secondary); }
+.customer-detail-skeleton { margin-top: 18px; }
+.customer-page .MuiButton-root:focus-visible,
+.customer-page .MuiTab-root:focus-visible,
+.customer-page .customer-table:focus-visible,
+.cust-page button:focus-visible,
+.cust-page input:focus-visible,
+.cust-page select:focus-visible,
+.cust-page textarea:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+@media (max-width: 700px) { .customer-actions { width: 100%; } .customer-actions .MuiButton-root { flex: 1 1 auto; } }
 .customer-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; margin: 18px 0 24px; }
 .customer-actions,.customer-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
 .customer-meta { font-size: .85rem; color: var(--text-secondary); }

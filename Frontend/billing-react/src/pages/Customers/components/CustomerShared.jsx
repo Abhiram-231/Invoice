@@ -2,16 +2,15 @@ import { Card, Skeleton } from '@mui/material';
 import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
 import { StatusBadge as DashboardStatusBadge } from '../../../components/dashboard/DashboardSections';
 const StatusBadge = ({ value }) => value == null || value === '' ? <span>—</span> : <DashboardStatusBadge value={String(value)} />;
-const formatCurrency = (value, currency = 'INR') => {
-  if (value == null || value === '' || !Number.isFinite(Number(value))) return '—';
-  const curr = currency || 'INR';
-  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: curr }).format(Number(value)); } catch { return `${value} ${curr}`; }
+const formatCurrency = (value, currency) => {
+  if (value == null || value === '' || !Number.isFinite(Number(value)) || !currency?.trim()) return '—';
+  try { return new Intl.NumberFormat('en-IN', { style: 'currency', currency: currency.trim().toUpperCase() }).format(Number(value)); } catch { return '—'; }
 };
 
 export { StatusBadge, formatCurrency };
 export const displayDate = (value, time = false) => value && !Number.isNaN(Date.parse(value)) ? new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', ...(time ? { hour: '2-digit', minute: '2-digit' } : {}) }).format(new Date(value.length === 10 ? `${value}T00:00:00` : value)) : '—';
 export function CustomerState({ query }) {
-  if (query.isPending) return <div role="status" aria-label="Loading customer data"><Skeleton height={80} /><Skeleton variant="rounded" height={220} /></div>;
+  if (query.isPending) return <div role="status" aria-label="Loading customer data" className="customer-detail-skeleton"><Skeleton height={80} /><div className="customer-summary">{[0, 1, 2].map(i => <Skeleton key={i} variant="rounded" height={92} />)}</div><Skeleton variant="rounded" height={220} /></div>;
   if (query.isError) return <DashboardErrorState title={["NOT_FOUND", "INVALID_ID"].includes(query.error.code) ? "Customer not found" : "Unable to load customer data"} message={query.error.message} onRetry={!['NOT_FOUND', 'INVALID_ID'].includes(query.error.code) ? () => query.refetch() : undefined} />;
   return null;
 }
