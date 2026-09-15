@@ -1,0 +1,35 @@
+import { Skeleton, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, Tooltip } from '@mui/material';
+import { ProductActionsMenu } from './ProductActionsMenu';
+import { ProductEmptyState, ProductErrorState } from './ProductStates';
+import { Inventory2Outlined, DesignServicesOutlined } from '@mui/icons-material';
+import { Link } from 'react-router-dom';
+
+const columns = [
+  ['productCode', 'Product Code', true], ['name', 'Product Name', true], ['type', 'Type'],
+  ['category', 'Category', true], ['unit', 'Unit'], ['price', 'Price', true],
+  ['taxCategory', 'Tax Category'], ['status', 'Status', true], ['actions', 'Actions'],
+];
+const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
+
+export function ProductTable({ items, loading, error, params, onSort, filtered, onClear, onRetry }) {
+  return <TableContainer className="product-table" tabIndex={0} aria-label="Scrollable product catalog" aria-busy={loading}>
+    <Table aria-label="Products and services catalog" size="small">
+      <TableHead><TableRow>{columns.map(([key, label, sortable]) => <TableCell key={key} align={key === 'price' ? 'right' : 'left'} sortDirection={params.sortBy === key ? params.sortOrder : false}>
+        {sortable ? <TableSortLabel active={params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => onSort(key)}>{label}</TableSortLabel> : label}
+      </TableCell>)}</TableRow></TableHead>
+      <TableBody>{loading ? Array.from({ length: 7 }, (_, row) => <TableRow key={row}>{columns.map(([key]) => <TableCell key={key}><Skeleton height={28} /></TableCell>)}</TableRow>)
+        : error ? <TableRow><TableCell colSpan={9}><ProductErrorState onRetry={onRetry} /></TableCell></TableRow>
+        : !items.length ? <TableRow><TableCell colSpan={9}><ProductEmptyState filtered={filtered} onClear={onClear} /></TableCell></TableRow>
+        : items.map(product => <TableRow hover key={product.id}>
+          <TableCell><span className="product-code">{product.productCode}</span></TableCell>
+          <TableCell><div className="product-identity"><span className={`product-row-icon ${product.type.toLowerCase()}`} aria-hidden="true">{product.type === 'Service' ? <DesignServicesOutlined fontSize="small" /> : <Inventory2Outlined fontSize="small" />}</span><Tooltip title={product.name}><Link to={`/products/${encodeURIComponent(product.id)}`} className="product-name">{product.name}</Link></Tooltip></div></TableCell>
+          <TableCell><span className={`product-badge ${product.type.toLowerCase()}`}>{product.type}</span></TableCell>
+          <TableCell><Tooltip title={product.category}><span className="product-category">{product.category}</span></Tooltip></TableCell>
+          <TableCell>{product.unit}</TableCell><TableCell align="right" className="product-price">{currency.format(product.price)}</TableCell>
+          <TableCell>{product.taxCategory}</TableCell><TableCell><span className={`product-badge ${product.status.toLowerCase()}`}>{product.status}</span></TableCell>
+          <TableCell><ProductActionsMenu product={product} /></TableCell>
+        </TableRow>)}
+      </TableBody>
+    </Table>
+  </TableContainer>;
+}
