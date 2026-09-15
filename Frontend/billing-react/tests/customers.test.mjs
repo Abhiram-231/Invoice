@@ -5,6 +5,7 @@ import { authApi } from '../../billing-api-client/authApi.js';
 import { customerApi } from '../../billing-api-client/customerApi.js';
 import { customerUpdatePayload, validateCustomerEdit } from '../src/pages/Customers/api/customerEdit.js';
 import { getCustomers, getCustomerById, getCustomerDetails, getCustomerAudit, updateCustomer, createCustomer, deactivateCustomer, validCustomerId } from '../src/pages/Customers/api/customerService.js';
+import { getNextCustomerCode, customerValidationSchema } from '../src/pages/Customers/validation/customerValidation.js';
 let calls, response, status;
 beforeEach(() => {
   calls = []; response = {}; status = 200;
@@ -121,3 +122,87 @@ test('other HTTP status codes and ngrok codes remain visible without raw errors'
   apiClient.defaults.adapter = async () => { throw { code: 'ERR_NETWORK' }; };
   await assert.rejects(getCustomers(), e => e.message.startsWith('Network Error:') && !e.message.includes('HTTP'));
 });
+
+test('getNextCustomerCode computes sequential CUST-001, CUST-002 and customerCode is mandatory', () => {
+  assert.equal(getNextCustomerCode([]), 'CUST-001');
+  assert.equal(getNextCustomerCode(null), 'CUST-001');
+  assert.equal(getNextCustomerCode([{ customerCode: 'CUST-001' }]), 'CUST-002');
+  assert.equal(
+    getNextCustomerCode([
+      { customerCode: 'CUST-001' },
+      { customerCode: 'CUST-002' },
+      { customerCode: 'CUST-009' },
+    ]),
+    'CUST-010'
+  );
+  assert.equal(
+    getNextCustomerCode([
+      { customerCode: 'OTHER-123' },
+      { customerCode: 'cust-042' },
+    ]),
+    'CUST-043'
+  );
+
+  // Validate that customerCode is mandatory in schema
+  assert.throws(
+    () => {
+      customerValidationSchema.validateSync({
+        name: 'Test Customer',
+        customerCode: '',
+        email: 'test@example.com',
+        taxRegistrationType: 'non-gst',
+        billingAddress: {
+          street: '123 Main',
+          city: 'City',
+          state: 'State',
+          postalCode: '500001',
+          country: 'India',
+        },
+      });
+    },
+    (err) => err.message.includes('Customer code is required')
+  );
+
+  // Validate that GSTIN is mandatory when taxRegistrationType is gst
+  assert.throws(
+    () => {
+      customerValidationSchema.validateSync({
+        name: 'Test Customer',
+        customerCode: 'CUST-001',
+        email: 'test@example.com',
+        taxRegistrationType: 'gst',
+        taxId: '',
+        billingAddress: {
+          street: '123 Main',
+          city: 'City',
+          state: 'State',
+          postalCode: '500001',
+          country: 'India',
+        },
+      });
+    },
+    (err) => err.message.includes('GSTIN is required')
+  );
+
+  // Validate that PAN / Registration ID is mandatory when taxRegistrationType is pan
+  assert.throws(
+    () => {
+      customerValidationSchema.validateSync({
+        name: 'Test Customer',
+        customerCode: 'CUST-001',
+        email: 'test@example.com',
+        taxRegistrationType: 'pan',
+        taxId: '',
+        billingAddress: {
+          street: '123 Main',
+          city: 'City',
+          state: 'State',
+          postalCode: '500001',
+          country: 'India',
+        },
+      });
+    },
+    (err) => err.message.includes('PAN / Registration ID is required')
+  );
+});
+
