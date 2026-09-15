@@ -1,13 +1,81 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { AddressSection } from './AddressSection';
 import { shippingFromBilling } from 'billing-contracts';
+import { customerApi } from 'billing-api-client';
 import {
   customerValidationSchema,
   DEFAULT_CUSTOMER_VALUES,
+  STEP_FIELDS,
+  getNextCustomerCode,
 } from '../validation/customerValidation';
+import {
+  PersonOutline,
+  LocalOfferOutlined,
+  BusinessOutlined,
+  GroupsOutlined,
+  EmailOutlined,
+  PhoneOutlined,
+  LanguageOutlined,
+  ReceiptLongOutlined,
+  HomeOutlined,
+  CheckCircleOutlined,
+  LightbulbOutlined,
+  ArrowForward,
+  ArrowBack,
+  InfoOutlined,
+  Check,
+  EditOutlined,
+  DescriptionOutlined,
+} from '@mui/icons-material';
 import '../styles/customer-form.css';
+
+const STEPS = [
+  {
+    id: 0,
+    label: 'Basic Info',
+    title: 'Basic Information',
+    subtitle: 'Enter the main details about your customer',
+    icon: BusinessOutlined,
+  },
+  {
+    id: 1,
+    label: 'Contact Info',
+    title: 'Contact Information',
+    subtitle: 'Provide communication and web contacts',
+    icon: EmailOutlined,
+  },
+  {
+    id: 2,
+    label: 'Billing & Tax',
+    title: 'Billing & Tax Information',
+    subtitle: 'Configure tax registration, billing currency, and payment terms',
+    icon: ReceiptLongOutlined,
+  },
+  {
+    id: 3,
+    label: 'Address',
+    title: 'Address Information',
+    subtitle: 'Enter billing and shipping address details',
+    icon: HomeOutlined,
+  },
+  {
+    id: 4,
+    label: 'Review',
+    title: 'Review & Confirm',
+    subtitle: 'Review all information before finalizing customer record',
+    icon: CheckCircleOutlined,
+  },
+];
+
+const QUICK_TIPS = {
+  0: 'Customer code is a unique identifier (e.g. CUST-001, CUST-002). It is automatically assigned sequentially, or you can customize it.',
+  1: 'Ensure the email address is accurate for dispatching invoices, payment receipts, and billing notifications.',
+  2: 'Choose GST Registered to automatically validate 15-character GST numbers and ensure seamless tax compliance.',
+  3: 'You can check "Shipping address is identical" to quickly mirror billing details into shipping.',
+  4: 'Review all customer details before final submission. Click any "Edit" link to quickly jump back to a section.',
+};
 
 export const CustomerForm = ({
   initialValues = null,
@@ -17,6 +85,8 @@ export const CustomerForm = ({
   onCancel,
   mode = 'create',
 }) => {
+  const [currentStep, setCurrentStep] = useState(0);
+
   const getInitialValues = (values) => {
     const rawTax = values?.taxId || values?.gstin || '';
     const isGst = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(rawTax);
@@ -84,33 +154,6 @@ export const CustomerForm = ({
     else if (ptClean === 'dueonreceipt') paymentTerms = 'Due on Receipt';
     else if (!paymentTerms) paymentTerms = 'Net 30';
 
-    const rawCreditLimit =
-      values?.creditLimit ??
-      values?.CreditLimit ??
-      values?.financialSummary?.creditLimit ??
-      values?.financialSummary?.CreditLimit ??
-      values?.raw?.creditLimit ??
-      values?.raw?.CreditLimit;
-    const creditLimit =
-      rawCreditLimit !== undefined && rawCreditLimit !== null && rawCreditLimit !== ''
-        ? Number(rawCreditLimit)
-        : '';
-
-    const rawOpeningBalance =
-      values?.openingBalance ??
-      values?.OpeningBalance ??
-      values?.outstandingBalance ??
-      values?.OutstandingBalance ??
-      values?.financialSummary?.outstandingBalance ??
-      values?.financialSummary?.OutstandingBalance ??
-      values?.financialSummary?.openingBalance ??
-      values?.raw?.openingBalance ??
-      values?.raw?.outstandingBalance;
-    const openingBalance =
-      rawOpeningBalance !== undefined && rawOpeningBalance !== null && rawOpeningBalance !== ''
-        ? Number(rawOpeningBalance)
-        : 0;
-
     return {
       ...DEFAULT_CUSTOMER_VALUES,
       ...(values || {}),
@@ -146,6 +189,7 @@ export const CustomerForm = ({
     setValue,
     getValues,
     reset,
+    trigger,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(customerValidationSchema),
@@ -160,9 +204,42 @@ export const CustomerForm = ({
     }
   }, [initialValues, reset]);
 
+  // Sequential code auto-generation for create mode (CUST-001, CUST-002, etc.)
+  useEffect(() => {
+    let isMounted = true;
+    if (mode === 'create') {
+      const activeCode = getValues('customerCode');
+      if (!initialValues?.customerCode && (!activeCode || activeCode.trim() === '')) {
+        customerApi
+          .getCustomers({ pageSize: 100 })
+          .then((res) => {
+            if (!isMounted) return;
+            const items = res?.items || (Array.isArray(res) ? res : []);
+            const nextCode = getNextCustomerCode(items);
+            const currentVal = getValues('customerCode');
+            if (!currentVal || currentVal.trim() === '') {
+              setValue('customerCode', nextCode, { shouldValidate: true, shouldDirty: false });
+            }
+          })
+          .catch(() => {
+            if (isMounted) {
+              const currentVal = getValues('customerCode');
+              if (!currentVal || currentVal.trim() === '') {
+                setValue('customerCode', 'CUST-001', { shouldValidate: true, shouldDirty: false });
+              }
+            }
+          });
+      }
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [mode, initialValues?.customerCode, setValue, getValues]);
+
   const isShippingSameAsBilling = watch('isShippingSameAsBilling');
   const billingAddress = watch('billingAddress');
   const taxRegistrationType = watch('taxRegistrationType');
+  const watchedValues = watch();
 
   // Synchronize shipping address whenever billing changes while "Same as Billing" is active
   useEffect(() => {
@@ -184,6 +261,52 @@ export const CustomerForm = ({
     setValue,
     getValues,
   ]);
+
+  const getStepValidationFields = (stepIndex) => {
+    const fields = [...(STEP_FIELDS[stepIndex] || [])];
+    if (stepIndex === 3 && !isShippingSameAsBilling) {
+      fields.push(
+        'shippingAddress.street',
+        'shippingAddress.city',
+        'shippingAddress.state',
+        'shippingAddress.postalCode',
+        'shippingAddress.country'
+      );
+    }
+    return fields;
+  };
+
+  const handleNextStep = async () => {
+    const fieldsToValidate = getStepValidationFields(currentStep);
+    const isValid = await trigger(fieldsToValidate);
+    if (isValid) {
+      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length - 1));
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleStepClick = async (targetStep) => {
+    if (targetStep === currentStep) return;
+    if (targetStep < currentStep) {
+      setCurrentStep(targetStep);
+      return;
+    }
+
+    // Validate steps prior to jumping forward
+    let allPassed = true;
+    for (let s = currentStep; s < targetStep; s++) {
+      const stepFields = getStepValidationFields(s);
+      const passed = await trigger(stepFields);
+      if (!passed) {
+        allPassed = false;
+        setCurrentStep(s);
+        break;
+      }
+    }
+    if (allPassed) {
+      setCurrentStep(targetStep);
+    }
+  };
 
   const handleValidSubmit = (data) => {
     if (isSubmitting) return;
@@ -250,458 +373,800 @@ export const CustomerForm = ({
     onSubmit(payload);
   };
 
+  const handleInvalidSubmit = (formErrors) => {
+    // If validation fails on submit, switch to the first step containing an error
+    const errorKeys = Object.keys(formErrors);
+    for (let s = 0; s < STEPS.length; s++) {
+      const stepFields = getStepValidationFields(s);
+      const hasErrorInStep = errorKeys.some((key) =>
+        stepFields.some((f) => f === key || f.startsWith(`${key}.`))
+      );
+      if (hasErrorInStep) {
+        setCurrentStep(s);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        break;
+      }
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      if (currentStep < STEPS.length - 1) {
+        e.preventDefault();
+        handleNextStep();
+      }
+    }
+  };
+
+  const currentStepData = STEPS[currentStep];
+  const StepHeaderIcon = currentStepData.icon;
+
   return (
-    <form onSubmit={handleSubmit(handleValidSubmit)} className="cust-form" noValidate>
-      {submitError && (
-        <div className="cust-alert cust-alert-error" role="alert">
-          <span className="cust-alert-icon" aria-hidden="true">⚠️</span>
-          <span>{submitError}</span>
-        </div>
-      )}
-
-      {/* 1. Basic Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>1. Basic Information</h2>
-          <span className="cust-hint">* Required fields</span>
-        </div>
-
-        <div className="cust-grid cust-grid-2">
-          <div className="cust-field">
-            <label htmlFor="customer-name">
-              Contact / Customer Name <span className="cust-required">*</span>
-            </label>
-            <input
-              id="customer-name"
-              type="text"
-              placeholder="e.g. Venkat Rao"
-              aria-invalid={Boolean(errors.name)}
-              aria-describedby={errors.name ? 'customer-name-err' : undefined}
-              {...register('name')}
-            />
-            {errors.name && (
-              <span id="customer-name-err" className="cust-field-error" role="alert">
-                {errors.name.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-code">Customer Code</label>
-            <input
-              id="customer-code"
-              type="text"
-              placeholder="e.g. CUST-001 (auto-generated if empty)"
-              aria-invalid={Boolean(errors.customerCode)}
-              aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
-              {...register('customerCode')}
-            />
-            {errors.customerCode && (
-              <span id="customer-code-err" className="cust-field-error" role="alert">
-                {errors.customerCode.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-company">Company / Business Name</label>
-            <input
-              id="customer-company"
-              type="text"
-              placeholder="e.g. Deccan Tech Solutions"
-              aria-invalid={Boolean(errors.companyName)}
-              aria-describedby={errors.companyName ? 'customer-company-err' : undefined}
-              {...register('companyName')}
-            />
-            {errors.companyName && (
-              <span id="customer-company-err" className="cust-field-error" role="alert">
-                {errors.companyName.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-type">Customer Type</label>
-            <select
-              id="customer-type"
-              aria-invalid={Boolean(errors.customerType)}
-              {...register('customerType')}
-            >
-              <option value="business">Business</option>
-              <option value="individual">Individual</option>
-              <option value="organization">Organization</option>
-            </select>
-            {errors.customerType && (
-              <span className="cust-field-error" role="alert">
-                {errors.customerType.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-status">Account Status</label>
-            <select
-              id="customer-status"
-              disabled={mode === 'create'}
-              aria-describedby={mode === 'create' ? 'customer-status-help' : undefined}
-              aria-invalid={Boolean(errors.status)}
-              {...register('status')}
-            >
-              <option value="Active">Active</option>
-              <option value="Inactive">Inactive</option>
-            </select>
-            {mode === 'create' && <span id="customer-status-help" className="cust-hint">Initial status is assigned when the customer is created. Status can be changed when editing.</span>}
-            {errors.status && (
-              <span className="cust-field-error" role="alert">
-                {errors.status.message}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 2. Contact Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>2. Contact Information</h2>
-        </div>
-
-        <div className="cust-grid cust-grid-2">
-          <div className="cust-field">
-            <label htmlFor="customer-email">
-              Email Address <span className="cust-required">*</span>
-            </label>
-            <input
-              id="customer-email"
-              type="email"
-              placeholder="e.g. venkat.rao@deccantech.in"
-              aria-invalid={Boolean(errors.email)}
-              aria-describedby={errors.email ? 'customer-email-err' : undefined}
-              {...register('email')}
-            />
-            {errors.email && (
-              <span id="customer-email-err" className="cust-field-error" role="alert">
-                {errors.email.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-phone">Mobile / Phone Number</label>
-            <div
-              className="cust-phone-group"
-              style={{
-                display: 'flex',
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: '8px',
-                width: '100%',
-              }}
-            >
-              <select
-                id="customer-phone-code"
-                className="cust-phone-code-select"
-                aria-label="Country Dialing Code"
-                style={{
-                  width: '96px',
-                  minWidth: '88px',
-                  maxWidth: '105px',
-                  flex: '0 0 96px',
-                  padding: '9px 6px',
-                  fontSize: '0.84rem',
-                  cursor: 'pointer',
-                }}
-                {...register('phoneCountryCode')}
+    <div className="cust-wizard-container">
+      {/* 5-Step Stepper Header */}
+      <nav className="cust-wizard-stepper" aria-label="Customer Registration Progress">
+        {STEPS.map((step, index) => {
+          const isActive = step.id === currentStep;
+          const isCompleted = step.id < currentStep;
+          return (
+            <React.Fragment key={step.id}>
+              <button
+                type="button"
+                className={`cust-step-item ${isActive ? 'active' : ''} ${
+                  isCompleted ? 'completed' : ''
+                }`}
+                onClick={() => handleStepClick(step.id)}
+                aria-current={isActive ? 'step' : undefined}
               >
-                <option value="+91">+91 (IN)</option>
-                <option value="+1">+1 (US)</option>
-                <option value="+44">+44 (UK)</option>
-                <option value="+971">+971 (AE)</option>
-                <option value="+65">+65 (SG)</option>
-                <option value="+61">+61 (AU)</option>
-                <option value="+49">+49 (DE)</option>
-                <option value="+33">+33 (FR)</option>
-                <option value="+81">+81 (JP)</option>
-                <option value="+966">+966 (SA)</option>
-              </select>
-              <input
-                id="customer-phone"
-                type="tel"
-                className="cust-phone-input"
-                style={{ flex: '1 1 auto', minWidth: 0, width: 'auto' }}
-                placeholder="e.g. 98490 12345"
-                aria-invalid={Boolean(errors.phone)}
-                aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
-                {...register('phone')}
-              />
+                <div className="cust-step-circle">
+                  {isCompleted ? <Check fontSize="small" /> : step.id + 1}
+                </div>
+                <span className="cust-step-label">{step.label}</span>
+              </button>
+              {index < STEPS.length - 1 && (
+                <div
+                  className={`cust-step-line ${isCompleted ? 'completed' : ''}`}
+                  aria-hidden="true"
+                />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </nav>
+
+      {/* 2-Column Layout */}
+      <div className="cust-wizard-layout">
+        {/* Main Form Card */}
+        <div className="cust-wizard-main">
+          <form
+            onSubmit={handleSubmit(handleValidSubmit, handleInvalidSubmit)}
+            onKeyDown={handleKeyDown}
+            className="cust-form cust-wizard-card"
+            noValidate
+          >
+            {submitError && (
+              <div className="cust-alert cust-alert-error" role="alert" style={{ margin: '16px 20px 0' }}>
+                <span className="cust-alert-icon" aria-hidden="true">⚠️</span>
+                <span>{submitError}</span>
+              </div>
+            )}
+
+            {/* Step Card Header */}
+            <div className="cust-wizard-card-header">
+              <div className="cust-wizard-header-left">
+                <div className="cust-step-icon-badge" aria-hidden="true">
+                  <StepHeaderIcon />
+                </div>
+                <div>
+                  <h2 className="cust-step-title">{currentStepData.title}</h2>
+                  <p className="cust-step-subtitle">{currentStepData.subtitle}</p>
+                </div>
+              </div>
+              <div className="cust-required-pill">
+                <InfoOutlined fontSize="small" />
+                <span>
+                  Fields marked with <strong className="cust-required">*</strong> are required
+                </span>
+              </div>
             </div>
-            {errors.phone && (
-              <span id="customer-phone-err" className="cust-field-error" role="alert">
-                {errors.phone.message}
-              </span>
+
+            {/* STEP 0: Basic Information */}
+            {currentStep === 0 && (
+              <div className="cust-grid cust-grid-2">
+                <div className="cust-field">
+                  <label htmlFor="customer-name">
+                    Contact / Customer Name <span className="cust-required">*</span>
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <PersonOutline />
+                    </span>
+                    <input
+                      id="customer-name"
+                      type="text"
+                      placeholder="e.g. Venkat Rao"
+                      aria-invalid={Boolean(errors.name)}
+                      aria-describedby={errors.name ? 'customer-name-err' : undefined}
+                      {...register('name')}
+                    />
+                  </div>
+                  {errors.name && (
+                    <span id="customer-name-err" className="cust-field-error" role="alert">
+                      {errors.name.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-code">
+                    Customer Code <span className="cust-required">*</span>
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <LocalOfferOutlined />
+                    </span>
+                    <input
+                      id="customer-code"
+                      type="text"
+                      placeholder="e.g. CUST-001 (auto-generated if empty)"
+                      aria-invalid={Boolean(errors.customerCode)}
+                      aria-describedby={errors.customerCode ? 'customer-code-err' : undefined}
+                      {...register('customerCode')}
+                    />
+                  </div>
+                  {errors.customerCode && (
+                    <span id="customer-code-err" className="cust-field-error" role="alert">
+                      {errors.customerCode.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-company">Company / Business Name</label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <BusinessOutlined />
+                    </span>
+                    <input
+                      id="customer-company"
+                      type="text"
+                      placeholder="e.g. Deccan Tech Solutions"
+                      aria-invalid={Boolean(errors.companyName)}
+                      aria-describedby={errors.companyName ? 'customer-company-err' : undefined}
+                      {...register('companyName')}
+                    />
+                  </div>
+                  {errors.companyName && (
+                    <span id="customer-company-err" className="cust-field-error" role="alert">
+                      {errors.companyName.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-type">Customer Type</label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <GroupsOutlined />
+                    </span>
+                    <select
+                      id="customer-type"
+                      aria-invalid={Boolean(errors.customerType)}
+                      {...register('customerType')}
+                    >
+                      <option value="business">Business</option>
+                      <option value="individual">Individual</option>
+                      <option value="organization">Organization</option>
+                    </select>
+                  </div>
+                  {errors.customerType && (
+                    <span className="cust-field-error" role="alert">
+                      {errors.customerType.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field cust-col-span-2">
+                  <label htmlFor="customer-status">Account Status</label>
+                  <div className="cust-status-select-wrap">
+                    <span
+                      className={`cust-status-dot ${
+                        watch('status') === 'Active' ? 'active' : 'inactive'
+                      }`}
+                      aria-hidden="true"
+                    />
+                    <select
+                      id="customer-status"
+                      disabled={mode === 'create'}
+                      aria-describedby={mode === 'create' ? 'customer-status-help' : undefined}
+                      aria-invalid={Boolean(errors.status)}
+                      {...register('status')}
+                    >
+                      <option value="Active">Active</option>
+                      <option value="Inactive">Inactive</option>
+                    </select>
+                  </div>
+                  {mode === 'create' && (
+                    <span id="customer-status-help" className="cust-hint">
+                      Initial status is assigned when the customer is created. Status can be changed when editing.
+                    </span>
+                  )}
+                  {errors.status && (
+                    <span className="cust-field-error" role="alert">
+                      {errors.status.message}
+                    </span>
+                  )}
+                </div>
+              </div>
             )}
+
+            {/* STEP 1: Contact Information */}
+            {currentStep === 1 && (
+              <div className="cust-grid cust-grid-2">
+                <div className="cust-field">
+                  <label htmlFor="customer-email">
+                    Email Address <span className="cust-required">*</span>
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <EmailOutlined />
+                    </span>
+                    <input
+                      id="customer-email"
+                      type="email"
+                      placeholder="e.g. venkat.rao@deccantech.in"
+                      aria-invalid={Boolean(errors.email)}
+                      aria-describedby={errors.email ? 'customer-email-err' : undefined}
+                      {...register('email')}
+                    />
+                  </div>
+                  {errors.email && (
+                    <span id="customer-email-err" className="cust-field-error" role="alert">
+                      {errors.email.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-phone">Mobile / Phone Number</label>
+                  <div className="cust-phone-group">
+                    <select
+                      id="customer-phone-code"
+                      className="cust-phone-code-select"
+                      aria-label="Country Dialing Code"
+                      {...register('phoneCountryCode')}
+                    >
+                      <option value="+91">+91 (IN)</option>
+                      <option value="+1">+1 (US)</option>
+                      <option value="+44">+44 (UK)</option>
+                      <option value="+971">+971 (AE)</option>
+                      <option value="+65">+65 (SG)</option>
+                      <option value="+61">+61 (AU)</option>
+                      <option value="+49">+49 (DE)</option>
+                      <option value="+33">+33 (FR)</option>
+                      <option value="+81">+81 (JP)</option>
+                      <option value="+966">+966 (SA)</option>
+                    </select>
+                    <div className="cust-input-with-icon" style={{ flex: '1 1 auto' }}>
+                      <span className="cust-input-icon" aria-hidden="true">
+                        <PhoneOutlined />
+                      </span>
+                      <input
+                        id="customer-phone"
+                        type="tel"
+                        className="cust-phone-input"
+                        placeholder="e.g. 98490 12345"
+                        aria-invalid={Boolean(errors.phone)}
+                        aria-describedby={errors.phone ? 'customer-phone-err' : undefined}
+                        {...register('phone')}
+                      />
+                    </div>
+                  </div>
+                  {errors.phone && (
+                    <span id="customer-phone-err" className="cust-field-error" role="alert">
+                      {errors.phone.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field cust-col-span-2">
+                  <label htmlFor="customer-website">Website URL</label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <LanguageOutlined />
+                    </span>
+                    <input
+                      id="customer-website"
+                      type="text"
+                      placeholder="e.g. https://deccantech.in or www.deccantech.in"
+                      aria-invalid={Boolean(errors.website)}
+                      aria-describedby={errors.website ? 'customer-website-err' : undefined}
+                      {...register('website')}
+                    />
+                  </div>
+                  {errors.website && (
+                    <span id="customer-website-err" className="cust-field-error" role="alert">
+                      {errors.website.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Billing & Tax Information */}
+            {currentStep === 2 && (
+              <div className="cust-grid cust-grid-2">
+                <div className="cust-field">
+                  <label htmlFor="customer-tax-type">
+                    Tax Registration Status <span className="cust-required">*</span>
+                  </label>
+                  <select
+                    id="customer-tax-type"
+                    aria-invalid={Boolean(errors.taxRegistrationType)}
+                    {...register('taxRegistrationType')}
+                  >
+                    <option value="gst">GST Registered</option>
+                    <option value="pan">PAN / Tax ID Available</option>
+                    <option value="non-gst">Non-GST / Unregistered</option>
+                  </select>
+                  {errors.taxRegistrationType && (
+                    <span className="cust-field-error" role="alert">
+                      {errors.taxRegistrationType.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-taxid">
+                    {taxRegistrationType === 'gst' ? (
+                      <>
+                        GSTIN (15-Character GST Number) <span className="cust-required">*</span>
+                      </>
+                    ) : taxRegistrationType === 'pan' ? (
+                      <>
+                        PAN / Registration ID <span className="cust-required">*</span>
+                      </>
+                    ) : (
+                      'Tax ID (Optional)'
+                    )}
+                  </label>
+                  <div className="cust-input-with-icon">
+                    <span className="cust-input-icon" aria-hidden="true">
+                      <DescriptionOutlined />
+                    </span>
+                    <input
+                      id="customer-taxid"
+                      type="text"
+                      disabled={taxRegistrationType === 'non-gst'}
+                      placeholder={
+                        taxRegistrationType === 'gst'
+                          ? 'e.g. 36AAACD1234F1Z8'
+                          : taxRegistrationType === 'pan'
+                          ? 'e.g. ABCDE1234F'
+                          : 'Not applicable for non-GST'
+                      }
+                      maxLength={64}
+                      aria-invalid={Boolean(errors.taxId)}
+                      aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
+                      {...register('taxId')}
+                    />
+                  </div>
+                  {errors.taxId && (
+                    <span id="customer-taxid-err" className="cust-field-error" role="alert">
+                      {errors.taxId.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-currency">Billing Currency</label>
+                  <select
+                    id="customer-currency"
+                    aria-invalid={Boolean(errors.currency)}
+                    {...register('currency')}
+                  >
+                    <option value="INR">INR (₹)</option>
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                  </select>
+                  {errors.currency && (
+                    <span className="cust-field-error" role="alert">
+                      {errors.currency.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-payment-terms">Payment Terms</label>
+                  <select
+                    id="customer-payment-terms"
+                    aria-invalid={Boolean(errors.paymentTerms)}
+                    {...register('paymentTerms')}
+                  >
+                    <option value="">Select Payment Terms</option>
+                    <option value="Due on Receipt">Due on Receipt</option>
+                    <option value="Net 15">Net 15</option>
+                    <option value="Net 30">Net 30</option>
+                    <option value="Net 45">Net 45</option>
+                    <option value="Net 60">Net 60</option>
+                  </select>
+                  {errors.paymentTerms && (
+                    <span className="cust-field-error" role="alert">
+                      {errors.paymentTerms.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-credit-limit">Approved Credit Limit</label>
+                  <input
+                    id="customer-credit-limit"
+                    type="number"
+                    min="0"
+                    step="any"
+                    placeholder="Not available"
+                    disabled
+                    readOnly
+                    value={initialValues?.creditLimit ?? ''}
+                  />
+                  <span className="cust-hint">Managed in financial settings</span>
+                </div>
+
+                <div className="cust-field">
+                  <label htmlFor="customer-opening-balance">Opening Balance</label>
+                  <input
+                    id="customer-opening-balance"
+                    type="number"
+                    step="any"
+                    placeholder="Not available"
+                    disabled
+                    readOnly
+                    value={initialValues?.openingBalance ?? ''}
+                  />
+                  <span className="cust-hint">Managed in financial settings</span>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Address Information */}
+            {currentStep === 3 && (
+              <div className="cust-step-address-content">
+                <div className="cust-subcard">
+                  <AddressSection
+                    prefix="billingAddress"
+                    title="Billing Address Details"
+                    register={register}
+                    errors={errors}
+                  />
+                </div>
+
+                <div className="cust-checkbox-field">
+                  <label className="cust-checkbox-label" htmlFor="same-as-billing">
+                    <input
+                      id="same-as-billing"
+                      type="checkbox"
+                      {...register('isShippingSameAsBilling')}
+                    />
+                    <span>Shipping address is identical to billing address</span>
+                  </label>
+                </div>
+
+                <div className="cust-subcard">
+                  <AddressSection
+                    prefix="shippingAddress"
+                    title="Shipping Address Details"
+                    register={register}
+                    errors={errors}
+                    disabled={isShippingSameAsBilling}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* STEP 4: Review & Confirm */}
+            {currentStep === 4 && (
+              <div className="cust-review-sections">
+                {/* 1. Basic Info Review */}
+                <div className="cust-review-card">
+                  <div className="cust-review-card-header">
+                    <h4>Basic Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => setCurrentStep(0)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
+                  </div>
+                  <div className="cust-review-grid">
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Customer Name</span>
+                      <span className="cust-review-value">{watchedValues.name || '—'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Customer Code</span>
+                      <span className="cust-review-value">{watchedValues.customerCode || '—'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Company Name</span>
+                      <span className="cust-review-value">{watchedValues.companyName || '—'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Customer Type</span>
+                      <span className="cust-review-value">
+                        {watchedValues.customerType
+                          ? watchedValues.customerType.charAt(0).toUpperCase() +
+                            watchedValues.customerType.slice(1)
+                          : 'Business'}
+                      </span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Account Status</span>
+                      <span className="cust-review-value">{watchedValues.status || 'Active'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Contact Info Review */}
+                <div className="cust-review-card">
+                  <div className="cust-review-card-header">
+                    <h4>Contact Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => setCurrentStep(1)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
+                  </div>
+                  <div className="cust-review-grid">
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Email Address</span>
+                      <span className="cust-review-value">{watchedValues.email || '—'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Phone Number</span>
+                      <span className="cust-review-value">
+                        {watchedValues.phone
+                          ? `${watchedValues.phoneCountryCode || '+91'} ${watchedValues.phone}`
+                          : '—'}
+                      </span>
+                    </div>
+                    <div className="cust-review-row cust-col-span-2">
+                      <span className="cust-review-label">Website URL</span>
+                      <span className="cust-review-value">{watchedValues.website || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. Billing & Tax Review */}
+                <div className="cust-review-card">
+                  <div className="cust-review-card-header">
+                    <h4>Billing & Tax Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => setCurrentStep(2)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
+                  </div>
+                  <div className="cust-review-grid">
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Tax Status</span>
+                      <span className="cust-review-value">
+                        {watchedValues.taxRegistrationType === 'gst'
+                          ? 'GST Registered'
+                          : watchedValues.taxRegistrationType === 'pan'
+                          ? 'PAN Available'
+                          : 'Non-GST / Unregistered'}
+                      </span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Tax ID / GSTIN</span>
+                      <span className="cust-review-value">{watchedValues.taxId || '—'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Currency</span>
+                      <span className="cust-review-value">{watchedValues.currency || 'INR'}</span>
+                    </div>
+                    <div className="cust-review-row">
+                      <span className="cust-review-label">Payment Terms</span>
+                      <span className="cust-review-value">{watchedValues.paymentTerms || '—'}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4. Address Review */}
+                <div className="cust-review-card">
+                  <div className="cust-review-card-header">
+                    <h4>Address Information</h4>
+                    <button
+                      type="button"
+                      className="cust-review-edit-btn"
+                      onClick={() => setCurrentStep(3)}
+                    >
+                      <EditOutlined fontSize="small" /> Edit
+                    </button>
+                  </div>
+                  <div className="cust-review-grid">
+                    <div className="cust-review-row cust-col-span-2">
+                      <span className="cust-review-label">Billing Address</span>
+                      <span className="cust-review-value">
+                        {[
+                          watchedValues.billingAddress?.street,
+                          watchedValues.billingAddress?.addressLine2,
+                          watchedValues.billingAddress?.city,
+                          watchedValues.billingAddress?.state,
+                          watchedValues.billingAddress?.postalCode,
+                          watchedValues.billingAddress?.country,
+                        ]
+                          .filter(Boolean)
+                          .join(', ') || '—'}
+                      </span>
+                    </div>
+                    <div className="cust-review-row cust-col-span-2">
+                      <span className="cust-review-label">Shipping Address</span>
+                      <span className="cust-review-value">
+                        {watchedValues.isShippingSameAsBilling
+                          ? 'Same as billing address'
+                          : [
+                              watchedValues.shippingAddress?.street,
+                              watchedValues.shippingAddress?.addressLine2,
+                              watchedValues.shippingAddress?.city,
+                              watchedValues.shippingAddress?.state,
+                              watchedValues.shippingAddress?.postalCode,
+                              watchedValues.shippingAddress?.country,
+                            ]
+                              .filter(Boolean)
+                              .join(', ') || '—'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Internal Notes */}
+                <div className="cust-field" style={{ marginTop: '8px' }}>
+                  <label htmlFor="customer-notes">Internal Notes (Optional)</label>
+                  <textarea
+                    id="customer-notes"
+                    rows={3}
+                    placeholder="Add internal notes, client preferences, or delivery instructions..."
+                    aria-invalid={Boolean(errors.notes)}
+                    aria-describedby={errors.notes ? 'customer-notes-err' : undefined}
+                    {...register('notes')}
+                  />
+                  {errors.notes && (
+                    <span id="customer-notes-err" className="cust-field-error" role="alert">
+                      {errors.notes.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Bottom Actions Bar */}
+            <div className="cust-wizard-actions">
+              <div className="cust-actions-left">
+                {currentStep === 0 ? (
+                  <button
+                    type="button"
+                    className="cust-btn cust-btn-secondary"
+                    onClick={onCancel}
+                    disabled={isSubmitting}
+                  >
+                    Cancel
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="cust-btn cust-btn-secondary"
+                    onClick={() => {
+                      setCurrentStep((prev) => Math.max(prev - 1, 0));
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }}
+                    disabled={isSubmitting}
+                  >
+                    <ArrowBack /> Back
+                  </button>
+                )}
+              </div>
+
+              <div className="cust-actions-right">
+                {currentStep < STEPS.length - 1 ? (
+                  <button
+                    type="button"
+                    className="cust-btn cust-btn-primary"
+                    onClick={handleNextStep}
+                    disabled={isSubmitting}
+                  >
+                    Next: {STEPS[currentStep + 1].label} <ArrowForward />
+                  </button>
+                ) : (
+                  <button
+                    type="submit"
+                    className="cust-btn cust-btn-primary"
+                    disabled={isSubmitting}
+                  >
+                    {isSubmitting
+                      ? mode === 'edit'
+                        ? 'Saving...'
+                        : 'Creating...'
+                      : mode === 'edit'
+                      ? 'Save Changes'
+                      : 'Create Customer'}
+                  </button>
+                )}
+              </div>
+            </div>
+          </form>
+        </div>
+
+        {/* Right Assistant Panel */}
+        <aside className="cust-wizard-aside">
+          {/* Card 1: Add a New Customer Info Card */}
+          <div className="cust-side-card cust-guide-card">
+            <div className="cust-guide-illustration" aria-hidden="true">
+              <svg
+                width="72"
+                height="72"
+                viewBox="0 0 72 72"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <rect
+                  x="12"
+                  y="10"
+                  width="48"
+                  height="52"
+                  rx="8"
+                  fill="#f5ede6"
+                  stroke="#e0d4c8"
+                  strokeWidth="1.5"
+                />
+                <rect x="20" y="18" width="14" height="14" rx="4" fill="#855a3b" />
+                <circle cx="27" cy="23" r="3" fill="#ffffff" />
+                <path
+                  d="M22 30C22 28.5 24 27.5 27 27.5C30 27.5 32 28.5 32 30"
+                  stroke="#ffffff"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <rect x="38" y="20" width="16" height="3" rx="1.5" fill="#c4b5a5" />
+                <rect x="38" y="27" width="12" height="3" rx="1.5" fill="#c4b5a5" />
+                <rect x="20" y="38" width="32" height="3" rx="1.5" fill="#d9cdbf" />
+                <rect x="20" y="45" width="24" height="3" rx="1.5" fill="#d9cdbf" />
+                <circle cx="52" cy="52" r="10" fill="#754d34" />
+                <path
+                  d="M52 47V57M47 52H57"
+                  stroke="#ffffff"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </div>
+            <h3 className="cust-guide-title">
+              {mode === 'edit' ? 'Edit Customer' : 'Add a New Customer'}
+            </h3>
+            <p className="cust-guide-text">
+              Fill in the details step by step. You can review all information before saving.
+            </p>
           </div>
 
-          <div className="cust-field cust-col-span-2">
-            <label htmlFor="customer-website">Website URL</label>
-            <input
-              id="customer-website"
-              type="text"
-              placeholder="e.g. https://deccantech.in or www.deccantech.in"
-              aria-invalid={Boolean(errors.website)}
-              aria-describedby={errors.website ? 'customer-website-err' : undefined}
-              {...register('website')}
-            />
-            {errors.website && (
-              <span id="customer-website-err" className="cust-field-error" role="alert">
-                {errors.website.message}
+          {/* Card 2: Contextual Quick Tip Card */}
+          <div className="cust-side-card cust-tip-card">
+            <div className="cust-tip-header">
+              <span className="cust-tip-icon" aria-hidden="true">
+                <LightbulbOutlined />
               </span>
-            )}
+              <h4 className="cust-tip-title">Quick Tip</h4>
+            </div>
+            <p className="cust-tip-text">{QUICK_TIPS[currentStep]}</p>
           </div>
-        </div>
-      </section>
-
-      {/* 3. Tax Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>3. Tax Information</h2>
-        </div>
-
-        <div className="cust-grid cust-grid-2">
-          <div className="cust-field">
-            <label htmlFor="customer-tax-type">Tax Registration Status</label>
-            <select
-              id="customer-tax-type"
-              aria-invalid={Boolean(errors.taxRegistrationType)}
-              {...register('taxRegistrationType')}
-            >
-              <option value="gst">GST Registered</option>
-              <option value="pan">PAN / Tax ID Available</option>
-              <option value="non-gst">Non-GST / Unregistered</option>
-            </select>
-            {errors.taxRegistrationType && (
-              <span className="cust-field-error" role="alert">
-                {errors.taxRegistrationType.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-taxid">
-              {taxRegistrationType === 'gst'
-                ? 'GSTIN (15-Character GST Number)'
-                : taxRegistrationType === 'pan'
-                ? 'PAN / Registration ID'
-                : 'Tax ID (Optional)'}
-            </label>
-            <input
-              id="customer-taxid"
-              type="text"
-              disabled={taxRegistrationType === 'non-gst'}
-              placeholder={
-                taxRegistrationType === 'gst'
-                  ? 'e.g. 36AAACD1234F1Z8'
-                  : taxRegistrationType === 'pan'
-                  ? 'e.g. ABCDE1234F'
-                  : 'Not applicable for non-GST'
-              }
-              maxLength={64}
-              aria-invalid={Boolean(errors.taxId)}
-              aria-describedby={errors.taxId ? 'customer-taxid-err' : undefined}
-              {...register('taxId')}
-            />
-            {errors.taxId && (
-              <span id="customer-taxid-err" className="cust-field-error" role="alert">
-                {errors.taxId.message}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Billing Address */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>4. Billing Address</h2>
-        </div>
-
-        <AddressSection
-          prefix="billingAddress"
-          title="Billing Address Details"
-          register={register}
-          errors={errors}
-        />
-      </section>
-
-      {/* 5. Shipping Address */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>5. Shipping Address</h2>
-        </div>
-
-        {/* Same as Billing Checkbox */}
-        <div className="cust-checkbox-field">
-          <label className="cust-checkbox-label" htmlFor="same-as-billing">
-            <input
-              id="same-as-billing"
-              type="checkbox"
-              {...register('isShippingSameAsBilling')}
-            />
-            <span>Shipping address is identical to billing address</span>
-          </label>
-        </div>
-
-        <AddressSection
-          prefix="shippingAddress"
-          title="Shipping Address Details"
-          register={register}
-          errors={errors}
-          disabled={isShippingSameAsBilling}
-        />
-      </section>
-
-      {/* 6. Payment Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>6. Payment Information</h2>
-          <span id="customer-financial-help" className="cust-hint">Credit Limit and Opening Balance cannot be changed here because the customer service does not support saving them.</span>
-        </div>
-
-        <div className="cust-grid cust-grid-2">
-          <div className="cust-field">
-            <label htmlFor="customer-currency">Billing Currency</label>
-            <select
-              id="customer-currency"
-              aria-invalid={Boolean(errors.currency)}
-              {...register('currency')}
-            >
-              <option value="INR">INR (₹)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-            </select>
-            {errors.currency && (
-              <span className="cust-field-error" role="alert">
-                {errors.currency.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-payment-terms">Payment Terms</label>
-            <select
-              id="customer-payment-terms"
-              aria-invalid={Boolean(errors.paymentTerms)}
-              {...register('paymentTerms')}
-            >
-              <option value="">Select Payment Terms</option>
-              <option value="Due on Receipt">Due on Receipt</option>
-              <option value="Net 15">Net 15</option>
-              <option value="Net 30">Net 30</option>
-              <option value="Net 45">Net 45</option>
-              <option value="Net 60">Net 60</option>
-            </select>
-            {errors.paymentTerms && (
-              <span className="cust-field-error" role="alert">
-                {errors.paymentTerms.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-credit-limit">Approved Credit Limit</label>
-            <input
-              id="customer-credit-limit"
-              type="number"
-              min="0"
-              step="any"
-              placeholder="Not available"
-              aria-invalid={Boolean(errors.creditLimit)}
-              disabled
-              readOnly
-              value={initialValues?.creditLimit ?? ''}
-              aria-describedby="customer-financial-help"
-            />
-            {errors.creditLimit && (
-              <span id="customer-credit-limit-err" className="cust-field-error" role="alert">
-                {errors.creditLimit.message}
-              </span>
-            )}
-          </div>
-
-          <div className="cust-field">
-            <label htmlFor="customer-opening-balance">Opening Balance</label>
-            <input
-              id="customer-opening-balance"
-              type="number"
-              step="any"
-              placeholder="Not available"
-              aria-invalid={Boolean(errors.openingBalance)}
-              disabled
-              readOnly
-              value={initialValues?.openingBalance ?? ''}
-              aria-describedby="customer-financial-help"
-            />
-            {errors.openingBalance && (
-              <span id="customer-opening-balance-err" className="cust-field-error" role="alert">
-                {errors.openingBalance.message}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Additional Information */}
-      <section className="cust-card">
-        <div className="cust-card-header">
-          <h2>7. Additional Information</h2>
-        </div>
-
-        <div className="cust-grid cust-grid-2">
-          <div className="cust-field cust-col-span-2">
-            <label htmlFor="customer-notes">Internal Notes</label>
-            <textarea
-              id="customer-notes"
-              rows={3}
-              placeholder="Add internal notes, client preferences, or delivery instructions..."
-              aria-invalid={Boolean(errors.notes)}
-              aria-describedby={errors.notes ? 'customer-notes-err' : undefined}
-              {...register('notes')}
-            />
-            {errors.notes && (
-              <span id="customer-notes-err" className="cust-field-error" role="alert">
-                {errors.notes.message}
-              </span>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Form Action Controls */}
-      <div className="cust-form-actions">
-        <button
-          type="button"
-          className="cust-btn cust-btn-secondary"
-          onClick={onCancel}
-          disabled={isSubmitting}
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="cust-btn cust-btn-primary"
-          disabled={isSubmitting}
-        >
-          {isSubmitting
-            ? mode === 'edit'
-              ? 'Saving...'
-              : 'Creating...'
-            : mode === 'edit'
-            ? 'Update Customer'
-            : 'Create Customer'}
-        </button>
+        </aside>
       </div>
-    </form>
+    </div>
   );
 };
 

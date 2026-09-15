@@ -1,5 +1,479 @@
 @import './customer-base.css';
- 
+
+/* ==========================================================================
+   Customer Form - Multi-Step Stepper Wizard & Layout
+   ========================================================================== */
+
+.cust-wizard-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+/* Stepper Header Bar */
+.cust-wizard-stepper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border: 1px solid #eae3db;
+  border-radius: 12px;
+  padding: 20px 24px;
+  box-shadow: 0 2px 8px rgba(83, 58, 36, 0.04);
+  overflow-x: auto;
+  gap: 8px;
+}
+
+.cust-step-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 8px;
+  min-width: 90px;
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.cust-step-circle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #d6cdc4;
+  background: #ffffff;
+  color: #8c7d71;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.88rem;
+  font-weight: 700;
+  transition: all 0.2s ease;
+}
+
+.cust-step-circle svg {
+  font-size: 1.15rem;
+}
+
+.cust-step-label {
+  font-size: 0.82rem;
+  color: #8c7d71;
+  font-weight: 500;
+  white-space: nowrap;
+  transition: color 0.2s ease;
+}
+
+/* Active Step */
+.cust-step-item.active .cust-step-circle {
+  background: #754d34;
+  border-color: #754d34;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(117, 77, 52, 0.16);
+}
+
+.cust-step-item.active .cust-step-label {
+  color: #302a26;
+  font-weight: 700;
+}
+
+/* Completed Step */
+.cust-step-item.completed .cust-step-circle {
+  background: #754d34;
+  border-color: #754d34;
+  color: #ffffff;
+}
+
+.cust-step-item.completed .cust-step-label {
+  color: #302a26;
+  font-weight: 600;
+}
+
+/* Connecting Line */
+.cust-step-line {
+  flex: 1 1 40px;
+  min-width: 24px;
+  max-width: 80px;
+  height: 2px;
+  background: #e0dcd7;
+  margin: 0 4px;
+  margin-bottom: 22px; /* Centers vertically with circle */
+  transition: background-color 0.2s ease;
+}
+
+.cust-step-line.completed {
+  background: #754d34;
+}
+
+/* ==========================================================================
+   2-Column Wizard Layout: Form Card + Assistant Side Panel
+   ========================================================================== */
+
+.cust-wizard-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 24px;
+  align-items: start;
+}
+
+.cust-wizard-main {
+  min-width: 0;
+}
+
+/* Main Form Card */
+.cust-wizard-card {
+  background: #ffffff;
+  border: 1px solid #eae3db;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(83, 58, 36, 0.04);
+  overflow: hidden;
+}
+
+/* Header inside the Step Card */
+.cust-wizard-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #eae3db;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.cust-wizard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.cust-step-icon-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #f5ede6;
+  color: #754d34;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.cust-step-icon-badge svg {
+  font-size: 1.45rem;
+}
+
+.cust-step-title {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 750;
+  color: #302a26;
+  letter-spacing: -0.01em;
+}
+
+.cust-step-subtitle {
+  margin: 3px 0 0;
+  font-size: 0.85rem;
+  color: #776b61;
+}
+
+.cust-required-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: #fbf8f5;
+  border: 1px solid #eadfd2;
+  font-size: 0.8rem;
+  color: #776b61;
+}
+
+.cust-required-pill svg {
+  font-size: 1rem;
+  color: #855a3b;
+}
+
+/* Input With Prefix Icon */
+.cust-input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cust-input-with-icon .cust-input-icon {
+  position: absolute;
+  left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #9b8f84;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.cust-input-with-icon .cust-input-icon svg {
+  font-size: 1.15rem;
+}
+
+.cust-input-with-icon input,
+.cust-input-with-icon select {
+  padding-left: 38px !important;
+}
+
+/* Account Status Wrap with Indicator */
+.cust-status-select-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.cust-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  position: absolute;
+  left: 14px;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.cust-status-dot.active {
+  background: #2e7d32;
+  box-shadow: 0 0 0 2px rgba(46, 125, 50, 0.2);
+}
+
+.cust-status-dot.inactive {
+  background: #b33927;
+  box-shadow: 0 0 0 2px rgba(179, 57, 39, 0.2);
+}
+
+.cust-status-select-wrap select {
+  padding-left: 32px !important;
+}
+
+/* Bottom Actions in Form Card */
+.cust-wizard-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-top: 1px solid #eae3db;
+  background: #ffffff;
+  gap: 16px;
+}
+
+.cust-actions-left,
+.cust-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ==========================================================================
+   Right-Side Assistant Panel
+   ========================================================================== */
+
+.cust-wizard-aside {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.cust-side-card {
+  background: #ffffff;
+  border: 1px solid #eae3db;
+  border-radius: 12px;
+  padding: 22px;
+  box-shadow: 0 2px 8px rgba(83, 58, 36, 0.04);
+}
+
+.cust-guide-card {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.cust-guide-illustration {
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cust-guide-title {
+  margin: 0 0 6px;
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: #302a26;
+}
+
+.cust-guide-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #776b61;
+  line-height: 1.5;
+}
+
+.cust-tip-card {
+  background: #fdfaf6;
+  border: 1px solid #eae0d5;
+}
+
+.cust-tip-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.cust-tip-icon {
+  color: #855a3b;
+  display: flex;
+  align-items: center;
+}
+
+.cust-tip-icon svg {
+  font-size: 1.25rem;
+}
+
+.cust-tip-title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 750;
+  color: #302a26;
+}
+
+.cust-tip-text {
+  margin: 0;
+  font-size: 0.84rem;
+  color: #665b52;
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Review Step Styles
+   ========================================================================== */
+
+.cust-review-sections {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.cust-review-card {
+  background: #faf7f3;
+  border: 1px solid #eae3db;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.cust-review-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #e8e0d7;
+  padding-bottom: 8px;
+}
+
+.cust-review-card-header h4 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 750;
+  color: #302a26;
+}
+
+.cust-review-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  color: #855a3b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: background-color 0.15s;
+}
+
+.cust-review-edit-btn:hover {
+  background: #f0e6dc;
+  text-decoration: underline;
+}
+
+.cust-review-edit-btn svg {
+  font-size: 0.95rem;
+}
+
+.cust-review-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px 16px;
+}
+
+.cust-review-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.cust-review-label {
+  font-size: 0.78rem;
+  color: #776b61;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.cust-review-value {
+  font-size: 0.88rem;
+  color: #302a26;
+  font-weight: 500;
+  word-break: break-word;
+}
+
+.cust-step-address-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Same-as-billing checkbox wrapper in Address Step */
+.cust-checkbox-field {
+  padding: 12px 16px;
+  background: #faf7f3;
+  border: 1px solid #eae3db;
+  border-radius: 8px;
+}
+
+.cust-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #3f3934;
+  user-select: none;
+}
+
+.cust-checkbox-label input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  cursor: pointer;
+  accent-color: #754d34;
+}
+
+/* Phone input layout */
 .cust-phone-group {
   display: flex !important;
   flex-direction: row !important;
@@ -42,3 +516,31 @@
   min-width: 0 !important;
 }
 
+/* Responsive adjustments */
+@media (max-width: 1024px) {
+  .cust-wizard-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .cust-wizard-stepper {
+    justify-content: flex-start;
+  }
+  .cust-step-item {
+    min-width: 70px;
+  }
+  .cust-step-line {
+    min-width: 16px;
+    max-width: 32px;
+  }
+  .cust-grid-2 {
+    grid-template-columns: 1fr;
+  }
+  .cust-col-span-2 {
+    grid-column: span 1;
+  }
+  .cust-review-grid {
+    grid-template-columns: 1fr;
+  }
+}

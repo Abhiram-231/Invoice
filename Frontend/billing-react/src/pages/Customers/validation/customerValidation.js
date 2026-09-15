@@ -17,9 +17,8 @@ export const customerValidationSchema = yup.object({
   customerCode: yup
     .string()
     .trim()
-    .max(64, 'Customer code must not exceed 64 characters')
-    .nullable()
-    .transform((curr, orig) => (orig === '' ? null : curr)),
+    .required('Customer code is required')
+    .max(64, 'Customer code must not exceed 64 characters'),
   companyName: yup
     .string()
     .trim()
@@ -80,24 +79,36 @@ export const customerValidationSchema = yup.object({
   // 3. Tax Information
   taxRegistrationType: yup
     .string()
+    .required('Tax registration status is required')
     .oneOf(['gst', 'pan', 'non-gst'])
     .default('gst'),
   taxId: yup
     .string()
     .trim()
     .max(64, 'Tax ID must not exceed 64 characters')
-    .when('taxRegistrationType', {
-      is: 'gst',
-      then: (schema) =>
-        schema.test('gstin-format', 'Enter a valid 15-character GSTIN (e.g. 36AAACD1234F1Z8)', (val) => {
-          if (!val || val.trim() === '') return true;
-          return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(val.trim());
-        }),
-      otherwise: (schema) =>
-        schema.test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
+    .when('taxRegistrationType', ([type], schema) => {
+      if (type === 'gst') {
+        return schema
+          .required('GSTIN is required for GST registered customers')
+          .test('gstin-format', 'Enter a valid 15-character GSTIN (e.g. 36AAACD1234F1Z8)', (val) => {
+            if (!val || val.trim() === '') return false;
+            return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/i.test(val.trim());
+          });
+      }
+      if (type === 'pan') {
+        return schema
+          .required('PAN / Registration ID is required')
+          .test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
+            if (!val || val.trim() === '') return false;
+            return TAX_ID_REGEX.test(val.trim());
+          });
+      }
+      return schema
+        .test('taxid-format', 'Enter a valid Tax ID / PAN', (val) => {
           if (!val || val.trim() === '') return true;
           return TAX_ID_REGEX.test(val.trim());
-        }),
+        })
+        .nullable();
     })
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
@@ -242,4 +253,32 @@ export const DEFAULT_CUSTOMER_VALUES = {
     postalCode: '',
     country: 'India',
   },
+};
+
+export const STEP_FIELDS = {
+  0: ['name', 'customerCode', 'companyName', 'customerType', 'status'],
+  1: ['email', 'phoneCountryCode', 'phone', 'website'],
+  2: ['taxRegistrationType', 'taxId', 'currency', 'paymentTerms', 'creditLimit', 'openingBalance'],
+  3: ['billingAddress.street', 'billingAddress.city', 'billingAddress.state', 'billingAddress.postalCode', 'billingAddress.country', 'isShippingSameAsBilling', 'shippingAddress.street', 'shippingAddress.city', 'shippingAddress.state', 'shippingAddress.postalCode', 'shippingAddress.country'],
+  4: ['notes'],
+};
+
+export const getNextCustomerCode = (existingItems = []) => {
+  let maxNum = 0;
+  if (Array.isArray(existingItems)) {
+    for (const item of existingItems) {
+      const code = typeof item === 'string' ? item : item?.customerCode || item?.code || item?.CustomerCode || '';
+      if (code) {
+        const match = code.trim().match(/^CUST-(\d+)$/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (!isNaN(num) && num > maxNum) {
+            maxNum = num;
+          }
+        }
+      }
+    }
+  }
+  const nextNum = maxNum + 1;
+  return `CUST-${String(nextNum).padStart(3, '0')}`;
 };
