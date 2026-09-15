@@ -501,7 +501,7 @@ export const Landing = () => {
           <div className="footer-top-row">
             <Box className="footer-brand">
               <InvoiceBillingLogo size={18} />
-              <span className="footer-brand-name">invoice.billing</span>
+              <span className="footer-brand-name">INVOICE.BILLING</span>
             </Box>
             <div className="footer-nav-links">
               <span>Privacy Policy</span>
@@ -514,7 +514,7 @@ export const Landing = () => {
           <div className="footer-divider" />
           <div className="footer-bottom-row">
             <Typography variant="body2" className="footer-copyright">
-              &copy; 2026 invoice.billing Platform. Protected by TLS 1.3 &amp; ISO 27001 Security.
+              &copy; 2026 INVOICE.BILLING Platform. Protected by TLS 1.3 &amp; ISO 27001 Security.
             </Typography>
             <span className="footer-badge">Made for Fast-Growing Indian Businesses 🇮🇳</span>
           </div>

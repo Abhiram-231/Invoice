@@ -7,7 +7,7 @@ export const HeroMockup = () => (
     {/* Floating Invoice Sent Card */}
     <div className="hero-card-invoice">
       <div className="mockup-card-header">
-        <span className="mockup-brand-tag">Invoice.billing</span>
+        <span className="mockup-brand-tag">INVOICE.BILLING</span>
         <span className="mockup-status-paid">PAID ✓</span>
       </div>
       <div className="mockup-card-body">
