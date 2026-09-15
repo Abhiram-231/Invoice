@@ -12,6 +12,10 @@ export const API_ENDPOINTS = {
     DEACTIVATE: (id) => `/api/v1/customers/${id}/deactivate`,
     DETAILS: (id) => `/api/v1/customers/${id}/details`,
   },
+  PRODUCTS: {
+    BASE: '/api/v1/products',
+    BY_ID: (id) => `/api/v1/products/${id}`,
+  },
 };
 
 export default API_ENDPOINTS;

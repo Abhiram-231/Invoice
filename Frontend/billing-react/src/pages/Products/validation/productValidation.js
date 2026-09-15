@@ -1,0 +1,105 @@
+import * as yup from 'yup';
+
+const CODE_REGEX = /^[A-Za-z0-9_-]{2,32}$/;
+const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
+
+export const PRODUCT_TYPES = ['Product', 'Service'];
+export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
+export const TAX_CATEGORIES = ['GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'GST 0%', 'Exempt'];
+export const STANDARD_UNITS = ['Piece', 'Unit', 'Hour', 'Day', 'Month', 'Year', 'Project', 'Box', 'Kg', 'Meter'];
+
+export const productValidationSchema = yup.object({
+  // 1. Product Information
+  productCode: yup
+    .string()
+    .trim()
+    .required('Product code is required')
+    .min(2, 'Product code must be at least 2 characters')
+    .max(32, 'Product code must not exceed 32 characters')
+    .matches(CODE_REGEX, 'Product code must contain only letters, numbers, hyphens, and underscores'),
+
+  name: yup
+    .string()
+    .trim()
+    .required('Product name is required')
+    .min(2, 'Product name must be at least 2 characters')
+    .max(200, 'Product name must not exceed 200 characters'),
+
+  type: yup
+    .string()
+    .oneOf(PRODUCT_TYPES, 'Select a valid product type')
+    .default('Product'),
+
+  category: yup
+    .string()
+    .trim()
+    .required('Category is required')
+    .max(100, 'Category must not exceed 100 characters'),
+
+  description: yup
+    .string()
+    .trim()
+    .max(1000, 'Description must not exceed 1000 characters')
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+
+  // 2. Pricing & Tax
+  unit: yup
+    .string()
+    .trim()
+    .required('Unit is required')
+    .max(50, 'Unit must not exceed 50 characters')
+    .default('Piece'),
+
+  price: yup
+    .number()
+    .typeError('Price must be a valid number')
+    .required('Price is required')
+    .min(0, 'Price cannot be negative'),
+
+  currency: yup
+    .string()
+    .oneOf(CURRENCIES, 'Select a valid currency')
+    .default('INR'),
+
+  taxCategory: yup
+    .string()
+    .oneOf(TAX_CATEGORIES, 'Select a valid tax category')
+    .default('GST 18%'),
+
+  hsnSac: yup
+    .string()
+    .trim()
+    .max(16, 'HSN/SAC must not exceed 16 characters')
+    .test('hsn-sac-format', 'HSN/SAC must be 4 to 8 digits', (val) => {
+      if (!val || val.trim() === '') return true;
+      return HSN_SAC_REGEX.test(val.trim());
+    })
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
+
+  // 3. Settings
+  discountAllowed: yup
+    .boolean()
+    .default(true),
+
+  status: yup
+    .string()
+    .oneOf(['Active', 'Inactive'], 'Select a valid status')
+    .default('Active'),
+});
+
+export const DEFAULT_PRODUCT_VALUES = {
+  productCode: '',
+  name: '',
+  type: 'Product',
+  category: '',
+  description: '',
+  unit: 'Piece',
+  price: '',
+  currency: 'INR',
+  taxCategory: 'GST 18%',
+  hsnSac: '',
+  discountAllowed: true,
+  status: 'Active',
+};

@@ -17,6 +17,8 @@ import { Invoices } from '../pages/Invoices/Invoices';
 import { Taxes } from '../pages/Taxes/Taxes';
 import { ProductList } from '../pages/Products/ProductList';
 import { ProductRoutePlaceholder } from '../pages/Products/ProductRoutePlaceholder';
+import { CreateProduct } from '../pages/Products/pages/CreateProduct';
+import { EditProduct } from '../pages/Products/pages/EditProduct';
 
 // ==============================
 // CUSTOMER MODULE
@@ -84,9 +86,9 @@ export const AppRoutes = () => (
 
       {/* Other Modules */}
       <Route path="/products" element={<ProductList />} />
-      <Route path="/products/new" element={<ProductRoutePlaceholder mode="new" />} />
+      <Route path="/products/new" element={<CreateProduct />} />
       <Route path="/products/:id" element={<ProductRoutePlaceholder mode="view" />} />
-      <Route path="/products/:id/edit" element={<ProductRoutePlaceholder mode="edit" />} />
+      <Route path="/products/:id/edit" element={<EditProduct />} />
       <Route path="/credit-notes" element={<ModulePlaceholder />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />
       <Route path="/expenses" element={<ModulePlaceholder />} />

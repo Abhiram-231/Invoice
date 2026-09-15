@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Add, ArrowBack, ArrowForward, CheckCircleOutline, ChevronLeft, ChevronRight, DownloadOutlined, EditOutlined, InfoOutlined, MoreVert, Percent, PublicOutlined, ReceiptLongOutlined, Search, SettingsOutlined, VisibilityOutlined } from '@mui/icons-material';
 import { Menu, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions } from '@mui/material';
@@ -6,7 +6,7 @@ import { authApi } from 'billing-api-client';
 import { getDisplayName } from '../../utils/userDisplay';
 import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { date, exportTaxes, readTaxes, writeTaxes } from './taxStore';
-import './Taxes.css';
+import '../../styles/Taxes.css';
 
 const applicability = ['Intra & Inter State', 'Intra State', 'Inter State', 'Union Territory', 'Goods', 'Services', 'Specified Goods'];
 const emptyTax = { type: 'GST', code: '', name: '', rate: '', applicable: 'Intra & Inter State', country: 'India', from: new Date().toISOString().slice(0, 10), to: '', description: '', active: true, include: true, draft: false };

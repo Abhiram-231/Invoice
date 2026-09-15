@@ -1,0 +1,74 @@
+import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Breadcrumbs, Button } from '@mui/material';
+import { ArrowBack } from '@mui/icons-material';
+import { productService } from '../services/productService';
+import { ProductForm } from '../components/ProductForm';
+import '../styles/product-form.css';
+
+export function CreateProduct() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+
+  const catalog = useQuery({
+    queryKey: ['products', 'metadata'],
+    queryFn: ({ signal }) => productService.getCatalogMetadata({ signal }),
+    staleTime: 60000,
+  });
+
+  const handleSubmit = async (formData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    setSubmitError('');
+
+    try {
+      await productService.createProduct(formData);
+      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      navigate('/products', {
+        state: { productNotice: `Product "${formData.name}" created successfully.` },
+      });
+    } catch (err) {
+      setSubmitError(err.message || 'Failed to create product. Please check your entries.');
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <main className="product-page">
+      <Breadcrumbs aria-label="Breadcrumb">
+        <Link to="/products">Products &amp; Services</Link>
+        <span>Add New Product</span>
+      </Breadcrumbs>
+
+      <header className="product-heading">
+        <div>
+          <span className="product-eyebrow">YOUR BILLING CATALOG</span>
+          <h1>Add New Product</h1>
+          <p>Create a product with pricing, tax and billing details.</p>
+        </div>
+        <Button
+          component={Link}
+          to="/products"
+          variant="outlined"
+          startIcon={<ArrowBack />}
+        >
+          Back to Products
+        </Button>
+      </header>
+
+      <ProductForm
+        mode="create"
+        onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
+        submitError={submitError}
+        onCancel={() => navigate('/products')}
+        categories={catalog.data?.categories || []}
+      />
+    </main>
+  );
+}
+
+export default CreateProduct;
