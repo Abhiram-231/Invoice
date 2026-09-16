@@ -1134,7 +1134,7 @@ export const Login = () => {
                       color="inherit"
                     />
                   ) : (
-                    'Sign in to your account →'
+                    'Sign in'
                   )}
                 </Button>
 

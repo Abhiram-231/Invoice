@@ -162,7 +162,7 @@ export const Register = () => {
 
         <div className="billing-auth-card register-card">
           {/* Step Tag */}
-          <span className="billing-auth-step-tag">STEP 1 OF 1</span>
+          <span className="billing-auth-step-tag"></span>
 
           <Typography variant="h4" className="billing-auth-form-title">
             Create your account
@@ -353,7 +353,7 @@ export const Register = () => {
                 className="billing-auth-submit-btn"
                 sx={{ mt: 1 }}
               >
-                {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create Account \u2192'}
+                {isSubmitting ? <CircularProgress size={22} color="inherit" /> : 'Create Account'}
               </Button>
             </Stack>
           </Box>
