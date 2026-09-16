@@ -42,7 +42,11 @@ export function ProductForm({
   onCancel,
   mode = 'create',
 }) {
-  const [customDiscount, setCustomDiscount] = useState('');
+  const getInitialDiscount = (vals) => {
+    const rawVal = vals?.discountPercent ?? vals?.DiscountPercent;
+    return rawVal != null && Number(rawVal) > 0 ? String(rawVal) : '';
+  };
+  const [customDiscount, setCustomDiscount] = useState(() => getInitialDiscount(initialValues));
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
@@ -81,7 +85,7 @@ export function ProductForm({
   useEffect(() => {
     if (initialValues) {
       reset(getSanitizedInitialValues(initialValues));
-      setCustomDiscount('');
+      setCustomDiscount(getInitialDiscount(initialValues));
     }
   }, [initialValues, reset]);
 
@@ -108,6 +112,8 @@ export function ProductForm({
       setError('categoryId', { message: 'Select an active category.' });
       return;
     }
+    const discountNum = Number(customDiscount);
+    const hasDiscount = Boolean(data.discountAllowed) && customDiscount !== '' && Number.isFinite(discountNum) && discountNum >= 0 && discountNum <= 100;
     const payload = {
       ...data,
       ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
@@ -122,6 +128,7 @@ export function ProductForm({
       taxCategory: data.taxCategory || 'GST 18%',
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
+      discountPercent: hasDiscount ? discountNum : 0,
       status: data.status || 'Active',
     };
     onSubmit(payload);
@@ -455,7 +462,7 @@ export function ProductForm({
                   className={`product-input ${discountError ? 'has-error' : ''}`} placeholder="e.g. 10" value={customDiscount}
                   disabled={isSubmitting} onChange={event => setCustomDiscount(event.target.value)}
                   aria-invalid={Boolean(discountError)} aria-describedby="product-discount-note product-discount-feedback" />
-                <span id="product-discount-note" className="product-switch-desc">Preview only. Set the final discount during invoice creation; this percentage is not saved with the product.</span>
+                <span id="product-discount-note" className="product-switch-desc">Standard catalog discount percentage applied to this product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
                     : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}

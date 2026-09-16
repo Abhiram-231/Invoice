@@ -14,11 +14,15 @@ export function ProductDetails() {
   const categories = useCategories();
   const product = query.data;
   const categoryName = categories.data?.find(category => String(category.id) === String(product?.categoryId))?.name || product?.category;
+  const discountDisplay = product?.discountPercent != null && Number(product.discountPercent) > 0
+    ? `${Number(product.discountPercent).toFixed(2)}%`
+    : (product?.discountAllowed ? '0.00%' : 'Not allowed');
   const fields = product ? [
     ['Product Code', product.productCode], ['Product Name', product.name], ['Type', product.type],
     ['Category', categoryName || (product.categoryId ? `Category ${product.categoryId}` : 'Not assigned')],
     ['Unit', product.unit], ['Unit Price', `${product.currency || 'INR'} ${Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
     ['Tax Category', product.taxCategory], ['HSN / SAC Code', product.hsnSac],
+    ['Discount (%)', discountDisplay],
     ['Discount Allowed', product.discountAllowed ? 'Yes' : 'No'], ['Status', product.status],
   ] : [];
   return <main className="product-page">

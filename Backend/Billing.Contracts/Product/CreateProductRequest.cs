@@ -56,8 +56,26 @@ public class CreateProductRequest
     [JsonConverter(typeof(BooleanOrYesNoJsonConverter))]
     public bool DiscountAllowed { get; set; } = true;
 
+    private decimal? _discountPercent = 0.00m;
+
     [Range(0.00, 100.00, ErrorMessage = "Discount percent must be between 0 and 100.")]
-    public decimal? DiscountPercent { get; set; } = 0.00m;
+    public decimal? DiscountPercent
+    {
+        get => _discountPercent;
+        set => _discountPercent = value ?? _discountPercent;
+    }
+
+    public decimal? Discount
+    {
+        get => _discountPercent;
+        set => _discountPercent = value ?? _discountPercent;
+    }
+
+    public decimal? DiscountPercentage
+    {
+        get => _discountPercent;
+        set => _discountPercent = value ?? _discountPercent;
+    }
 
     [StringLength(32, ErrorMessage = "Status cannot exceed 32 characters.")]
     public string Status { get; set; } = "Active";
