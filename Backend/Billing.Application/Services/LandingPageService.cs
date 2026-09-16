@@ -1,6 +1,6 @@
-using Billing.Contracts;
+﻿using Billing.Contracts;
 
-namespace Billing.Application.Services;
+namespace Billing.Application;
 
 public class LandingPageService
 {

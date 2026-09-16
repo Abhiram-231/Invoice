@@ -1,4 +1,4 @@
-﻿using Billing.Application.Interfaces;
+using Billing.Application.Interfaces;
 using Billing.Domain.Entities;
 using Billing.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -14,48 +14,103 @@ public class UserSessionRepository : IUserSessionRepository
         _context = context;
     }
 
-    public async Task<UserSession?> GetByRefreshTokenHashAsync(string refreshTokenHash)
+    public async Task CreateSessionAsync(UserSession session)
+    {
+        await _context.UserSessions.AddAsync(session);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<UserSession?> GetByIdAsync(int id)
     {
         return await _context.UserSessions
             .Include(s => s.User)
-            .FirstOrDefaultAsync(s => s.RefreshTokenHash == refreshTokenHash);
+            .FirstOrDefaultAsync(s => s.Id == id);
+    }
+
+    public async Task<UserSession?> GetByTokenHashAsync(string tokenHash)
+    {
+        return await _context.UserSessions
+            .Include(s => s.User)
+            .FirstOrDefaultAsync(s => s.RefreshTokenHash == tokenHash);
     }
 
     public async Task<List<UserSession>> GetActiveSessionsByUserIdAsync(int userId)
     {
+        var now = DateTime.UtcNow;
         return await _context.UserSessions
-            .Where(s => s.UserId == userId && !s.IsRevoked && s.ExpiresAt > DateTime.UtcNow)
+            .Where(s => s.UserId == userId &&
+                        !s.IsRevoked &&
+                        s.RefreshTokenExpiresAtUtc > now &&
+                        s.SessionExpiresAtUtc > now)
+            .OrderByDescending(s => s.LastActivityAtUtc)
             .ToListAsync();
     }
 
-    public async Task AddAsync(UserSession session)
+    public async Task<List<UserSession>> GetAllSessionsByUserIdAsync(int userId)
     {
-        _context.UserSessions.Add(session);
-        await _context.SaveChangesAsync();
+        return await _context.UserSessions
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.CreatedAtUtc)
+            .ToListAsync();
     }
 
-    public async Task UpdateAsync(UserSession session)
+    public async Task RevokeSessionAsync(int sessionId, string reason, string? replacedByHash = null)
     {
-        _context.UserSessions.Update(session);
-        await _context.SaveChangesAsync();
+        var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (session != null && !session.IsRevoked)
+        {
+            session.IsRevoked = true;
+            session.RevokedAtUtc = DateTime.UtcNow;
+            session.LogoutAtUtc ??= DateTime.UtcNow;
+            session.RevocationReason = reason;
+            if (!string.IsNullOrWhiteSpace(replacedByHash))
+            {
+                session.ReplacedByTokenHash = replacedByHash;
+            }
+
+            await _context.SaveChangesAsync();
+        }
     }
 
-    public async Task RevokeAllUserSessionsAsync(int userId)
+    public async Task RevokeAllUserSessionsAsync(int userId, string reason)
     {
         var activeSessions = await _context.UserSessions
             .Where(s => s.UserId == userId && !s.IsRevoked)
             .ToListAsync();
 
+        var now = DateTime.UtcNow;
+        foreach (var session in activeSessions)
+        {
+            session.IsRevoked = true;
+            session.RevokedAtUtc = now;
+            session.LogoutAtUtc ??= now;
+            session.RevocationReason = reason;
+        }
+
         if (activeSessions.Any())
         {
-            var now = DateTime.UtcNow;
-            foreach (var session in activeSessions)
+            await _context.SaveChangesAsync();
+        }
+    }
+
+    public async Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null)
+    {
+        var session = await _context.UserSessions.FirstOrDefaultAsync(s => s.Id == sessionId);
+        if (session != null && !session.IsRevoked)
+        {
+            session.LastActivityAtUtc = DateTime.UtcNow;
+            if (newSessionExpiry.HasValue)
             {
-                session.IsRevoked = true;
-                session.RevokedAt = now;
+                session.SessionExpiresAtUtc = newSessionExpiry.Value;
             }
 
             await _context.SaveChangesAsync();
         }
+    }
+
+    public async Task UpdateSessionAsync(UserSession session)
+    {
+        _context.UserSessions.Update(session);
+        await _context.SaveChangesAsync();
     }
 }

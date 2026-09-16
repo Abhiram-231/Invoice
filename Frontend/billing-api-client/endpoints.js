@@ -8,13 +8,16 @@ export const API_ENDPOINTS = {
   },
   CUSTOMERS: {
     BASE: '/api/v1/customers',
+    SUMMARY: '/api/v1/customers/summary',
     BY_ID: (id) => `/api/v1/customers/${id}`,
     DEACTIVATE: (id) => `/api/v1/customers/${id}/deactivate`,
     DETAILS: (id) => `/api/v1/customers/${id}/details`,
+    AUDIT: (id) => `/api/v1/customers/${id}/audit`,
   },
   PRODUCTS: {
     BASE: '/api/v1/products',
     BY_ID: (id) => `/api/v1/products/${id}`,
+    DEACTIVATE: (id) => `/api/v1/products/${id}/deactivate`,
   },
   CATEGORIES: {
     BASE: '/api/v1/categories',

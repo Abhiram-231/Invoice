@@ -10,33 +10,245 @@ public class BillingDbContext : DbContext
     {
     }
 
+    public DbSet<Tenant> Tenants { get; set; }
+
     public DbSet<User> Users { get; set; }
+
     public DbSet<UserSession> UserSessions { get; set; }
+
+    public DbSet<Customer> Customers { get; set; }
+
+    public DbSet<CustomerAddress> CustomerAddresses { get; set; }
+
+    public DbSet<AuditLog> AuditLogs { get; set; }
+
+    public DbSet<ProductCategory> ProductCategories { get; set; }
+
+    public DbSet<Product> Products { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Tenant>(entity =>
+        {
+            entity.HasKey(t => t.Id);
+            entity.Property(t => t.Name).HasMaxLength(256).IsRequired();
+            entity.Property(t => t.TenantCode).HasMaxLength(64).IsRequired();
+            entity.HasIndex(t => t.TenantCode).IsUnique();
+            entity.Property(t => t.CompanyEmail).HasMaxLength(256);
+            entity.Property(t => t.Phone).HasMaxLength(64);
+            entity.Property(t => t.TaxId).HasMaxLength(64);
+            entity.Property(t => t.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(t => t.IsActive);
+
+            entity.HasData(new Tenant
+            {
+                Id = 1,
+                Name = "Default Company",
+                TenantCode = "tenant-default",
+                CompanyEmail = "admin@default.com",
+                Status = "Active",
+                CreatedAtUtc = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc)
+            });
+        });
+
+        modelBuilder.Entity<Customer>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.CustomerCode).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.Name).HasMaxLength(256).IsRequired();
+            entity.Property(c => c.Email).HasMaxLength(256).IsRequired();
+            entity.Property(c => c.Phone).HasMaxLength(64);
+            entity.Property(c => c.CompanyName).HasMaxLength(256);
+            entity.Property(c => c.CustomerType).HasMaxLength(32).HasDefaultValue("Business").IsRequired();
+            entity.Property(c => c.TaxId).HasMaxLength(64);
+            entity.Property(c => c.Address).HasMaxLength(512);
+            entity.Property(c => c.City).HasMaxLength(128);
+            entity.Property(c => c.State).HasMaxLength(128);
+            entity.Property(c => c.PostalCode).HasMaxLength(32);
+            entity.Property(c => c.Country).HasMaxLength(128);
+            entity.Property(c => c.Website).HasMaxLength(256);
+            entity.Property(c => c.Notes).HasMaxLength(1000);
+            entity.Property(c => c.Currency).HasMaxLength(10).HasDefaultValue("INR");
+            entity.Property(c => c.PaymentTerms).HasMaxLength(64);
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(c => c.IsActive);
+            entity.Property(c => c.RowVersion).IsRowVersion();
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(c => new { c.TenantId, c.CustomerCode })
+                  .IsUnique();
+            entity.HasIndex(c => new { c.TenantId, c.Email });
+            entity.HasIndex(c => new { c.TenantId, c.Status });
+            entity.HasIndex(c => c.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<CustomerAddress>(entity =>
+        {
+            entity.HasKey(a => a.Id);
+            entity.Property(a => a.AddressType).HasMaxLength(32).IsRequired();
+            entity.Property(a => a.AddressLine1).HasMaxLength(256).IsRequired();
+            entity.Property(a => a.AddressLine2).HasMaxLength(256);
+            entity.Property(a => a.City).HasMaxLength(128).IsRequired();
+            entity.Property(a => a.State).HasMaxLength(128);
+            entity.Property(a => a.PostalCode).HasMaxLength(32);
+            entity.Property(a => a.Country).HasMaxLength(128).IsRequired();
+            entity.Property(a => a.IsDefaultStatus).HasColumnName("IsDefault").HasMaxLength(16).HasDefaultValue("Non-Default").IsRequired();
+            entity.Ignore(a => a.IsDefault);
+
+            entity.HasOne(a => a.Customer)
+                  .WithMany(c => c.Addresses)
+                  .HasForeignKey(a => a.CustomerId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(a => a.Tenant)
+                  .WithMany()
+                  .HasForeignKey(a => a.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(a => new { a.TenantId, a.CustomerId });
+            entity.HasIndex(a => new { a.CustomerId, a.AddressType });
+        });
+
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasKey(u => u.Id);
+            entity.Property(u => u.Email).HasMaxLength(256).IsRequired();
+            entity.Property(u => u.Username).HasMaxLength(256);
+            entity.Property(u => u.Name).HasMaxLength(256);
+            entity.Property(u => u.ApplicationId).HasMaxLength(128);
+            entity.Property(u => u.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(u => u.IsActive);
+            entity.Property(u => u.RolesString).HasColumnName("Roles").HasMaxLength(256).HasDefaultValue("User").IsRequired();
+            entity.Ignore(u => u.Roles);
+            entity.Ignore(u => u.RolesJson);
+            entity.Property(u => u.PermissionsString).HasColumnName("Permissions").HasMaxLength(1000).HasDefaultValue("billing.view,billing.create").IsRequired();
+            entity.Ignore(u => u.Permissions);
+            entity.Ignore(u => u.PermissionsJson);
+
+            entity.HasOne(u => u.Tenant)
+                  .WithMany(t => t.Users)
+                  .HasForeignKey(u => u.TenantId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasMany(u => u.Sessions)
+                  .WithOne(s => s.User)
+                  .HasForeignKey(s => s.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
         modelBuilder.Entity<UserSession>(entity =>
         {
-            entity.ToTable("UserSessions");
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.Id).ValueGeneratedOnAdd();
+            entity.Property(s => s.RefreshTokenHash).HasMaxLength(128).IsRequired();
+            entity.Property(s => s.UserAgent).HasMaxLength(512);
+            entity.Property(s => s.DeviceInfo).HasMaxLength(256);
+            entity.Property(s => s.RevocationReason).HasMaxLength(256);
+            entity.Property(s => s.ReplacedByTokenHash).HasMaxLength(128);
 
+            entity.HasIndex(s => s.RefreshTokenHash)
+                  .IsUnique();
+
+            entity.HasIndex(s => new { s.UserId, s.IsRevoked });
+            entity.HasIndex(s => s.SessionExpiresAtUtc);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("audit_logs");
             entity.HasKey(e => e.Id);
 
-            entity.Property(e => e.RefreshTokenHash)
-                .IsRequired()
-                .HasMaxLength(128);
+            entity.Property(e => e.EntityName).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
+            entity.Property(e => e.UserName).HasMaxLength(200);
+            entity.Property(e => e.Changes).HasColumnType("text");
 
-            entity.HasIndex(e => e.RefreshTokenHash)
-                .HasDatabaseName("IX_UserSessions_RefreshTokenHash");
+            entity.HasOne(e => e.Customer)
+                  .WithMany()
+                  .HasForeignKey(e => e.CustomerId)
+                  .OnDelete(DeleteBehavior.SetNull);
 
-            entity.HasIndex(e => e.UserId)
-                .HasDatabaseName("IX_UserSessions_UserId");
+            entity.HasOne(e => e.Tenant)
+                  .WithMany()
+                  .HasForeignKey(e => e.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
 
-            entity.HasOne(e => e.User)
-                .WithMany(u => u.Sessions)
-                .HasForeignKey(e => e.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => new { e.TenantId, e.CustomerId })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_CustomerId");
+
+            entity.HasIndex(e => new { e.TenantId, e.Timestamp })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_Timestamp");
+
+            entity.HasIndex(e => new { e.TenantId, e.EntityName, e.EntityId })
+                  .HasDatabaseName("IX_AuditLogs_TenantId_Entity");
+        });
+
+        modelBuilder.Entity<ProductCategory>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).HasMaxLength(128).IsRequired();
+            entity.Property(c => c.Description).HasMaxLength(500);
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(c => c.IsActive);
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(c => new { c.TenantId, c.Name });
+            entity.HasIndex(c => c.TenantId);
+        });
+
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(p => p.Id);
+            entity.Property(p => p.ProductCode).HasMaxLength(64).IsRequired();
+            entity.Property(p => p.Name).HasMaxLength(256).IsRequired();
+            entity.Property(p => p.Description).HasMaxLength(1000);
+            entity.Property(p => p.Type).HasMaxLength(32).HasDefaultValue("Product").IsRequired();
+            entity.Property(p => p.Unit).HasMaxLength(32).HasDefaultValue("unit").IsRequired();
+            entity.Property(p => p.Price).HasPrecision(18, 2);
+            entity.Property(p => p.Currency).HasMaxLength(10).HasDefaultValue("INR").IsRequired();
+            entity.Property(p => p.TaxCategory).HasMaxLength(64);
+            entity.Property(p => p.HsnSacCode).HasMaxLength(32);
+            entity.Property(p => p.DiscountAllowed)
+                  .HasConversion(
+                      v => v ? "Yes" : "No",
+                      v => v != null && (v.Equals("Yes", StringComparison.OrdinalIgnoreCase) || v == "1" || v.Equals("true", StringComparison.OrdinalIgnoreCase)))
+                  .HasMaxLength(10)
+                  .HasColumnType("varchar(10)")
+                  .HasDefaultValue(true);
+            entity.Property(p => p.DiscountPercent).HasPrecision(5, 2).HasDefaultValue(0.00m);
+            entity.Property(p => p.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(p => p.IsActive);
+            entity.Property(p => p.RowVersion).IsRowVersion();
+
+            entity.HasOne(p => p.Tenant)
+                  .WithMany()
+                  .HasForeignKey(p => p.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.Property(p => p.Category).HasMaxLength(128);
+
+            entity.HasOne(p => p.ProductCategory)
+                  .WithMany(c => c.Products)
+                  .HasForeignKey(p => p.CategoryId)
+                  .OnDelete(DeleteBehavior.SetNull);
+
+            // IBMSBE-007: Unique Product Code per tenant & Category foreign key/indexes
+            entity.HasIndex(p => new { p.TenantId, p.ProductCode })
+                  .IsUnique();
+            entity.HasIndex(p => new { p.TenantId, p.CategoryId });
+            entity.HasIndex(p => new { p.TenantId, p.Status });
+            entity.HasIndex(p => p.CreatedAtUtc);
         });
     }
 }

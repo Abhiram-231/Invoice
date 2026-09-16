@@ -1,4 +1,4 @@
-﻿namespace Billing.Domain.Entities;
+namespace Billing.Domain.Entities;
 
 public class UserSession
 {
@@ -6,18 +6,31 @@ public class UserSession
 
     public int UserId { get; set; }
 
+    public User? User { get; set; }
+
     public string RefreshTokenHash { get; set; } = string.Empty;
 
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-    public DateTime ExpiresAt { get; set; }
-
-    public DateTime LastActivityAt { get; set; } = DateTime.UtcNow;
-
-    public DateTime? RevokedAt { get; set; }
+    public DateTime RefreshTokenExpiresAtUtc { get; set; }
 
     public bool IsRevoked { get; set; }
 
-    // Navigation property
-    public User User { get; set; } = null!;
+    public DateTime? RevokedAtUtc { get; set; }
+
+    public string? RevocationReason { get; set; }
+
+    public string? ReplacedByTokenHash { get; set; }
+
+    // Session tracking
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+
+    public DateTime LastActivityAtUtc { get; set; } = DateTime.UtcNow;
+
+    public DateTime? LogoutAtUtc { get; set; }
+
+    public DateTime SessionExpiresAtUtc { get; set; }
+
+    // Device information
+    public string? UserAgent { get; set; }
+
+    public string? DeviceInfo { get; set; }
 }

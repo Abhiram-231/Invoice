@@ -8,13 +8,13 @@ public class BillingDbContextFactory : IDesignTimeDbContextFactory<BillingDbCont
     public BillingDbContext CreateDbContext(string[] args)
     {
         var connectionString =
-            "Server=localhost;Port=3306;Database=BILLINGDB;User=root;Password=Sandeep@21;";
+            "Server=localhost;Port=3306;Database=invoice;User=root;Password=Sandeep@21;";
 
         var optionsBuilder = new DbContextOptionsBuilder<BillingDbContext>();
 
         optionsBuilder.UseMySql(
             connectionString,
-            ServerVersion.AutoDetect(connectionString)
+            new MySqlServerVersion(new Version(8, 0, 36))
         );
 
         return new BillingDbContext(optionsBuilder.Options);

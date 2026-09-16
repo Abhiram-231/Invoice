@@ -14,16 +14,34 @@ public class UserRepository : IUserRepository
         _context = context;
     }
 
-    public async Task<User?> GetByEmailAsync(string email)
-    {
-        return await _context.Users
-            .FirstOrDefaultAsync(x => x.Email == email);
-    }
-
     public async Task<User?> GetByIdAsync(int id)
     {
         return await _context.Users
+            .Include(u => u.Tenant)
+            .Include(u => u.Sessions)
             .FirstOrDefaultAsync(x => x.Id == id);
+    }
+
+    public async Task<User?> GetByEmailAsync(string email)
+    {
+        return await _context.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == email.ToLower());
+    }
+
+    public async Task<User?> GetByUsernameAsync(string username)
+    {
+        return await _context.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(x => x.Username.ToLower() == username.ToLower());
+    }
+
+    public async Task<User?> GetByEmailOrUsernameAsync(string identifier)
+    {
+        var lower = identifier.Trim().ToLower();
+        return await _context.Users
+            .Include(u => u.Tenant)
+            .FirstOrDefaultAsync(x => x.Email.ToLower() == lower || x.Username.ToLower() == lower);
     }
 
     public async Task AddAsync(User user)

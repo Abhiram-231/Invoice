@@ -15,12 +15,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Billing.Application\Billing.Application.csproj" />
-    <ProjectReference Include="..\Billing.Domain\Billing.Domain.csproj" />
+    <Using Include="Xunit" />
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Billing.API\Billing.API.csproj" />
+    <ProjectReference Include="..\Billing.Application\Billing.Application.csproj" />
+    <ProjectReference Include="..\Billing.Contracts\Billing.Contracts.csproj" />
+    <ProjectReference Include="..\Billing.Domain\Billing.Domain.csproj" />
   </ItemGroup>
 
 </Project>

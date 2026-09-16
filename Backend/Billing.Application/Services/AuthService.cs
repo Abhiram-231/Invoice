@@ -1,18 +1,19 @@
+using Billing.Application.Common;
 using Billing.Application.Interfaces;
 using Billing.Contracts;
 using Billing.Domain.Entities;
-using Microsoft.Extensions.Configuration;
 using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 
-namespace Billing.Application.Services;
+namespace Billing.Application;
 
 public class AuthService
 {
     private readonly IUserRepository _userRepository;
     private readonly IUserSessionRepository _userSessionRepository;
-    private readonly ITokenService _tokenService;
-    private readonly IConfiguration _configuration;
+    private readonly IJwtTokenService _jwtTokenService;
+    private readonly JwtSettings _jwtSettings;
+    private readonly ITenantRepository? _tenantRepository;
 
     // Temporary OTP storage
     private static readonly Dictionary<string, (string Otp, DateTime Expiry)>
@@ -24,33 +25,38 @@ public class AuthService
     public AuthService(
         IUserRepository userRepository,
         IUserSessionRepository userSessionRepository,
-        ITokenService tokenService,
-        IConfiguration configuration)
+        IJwtTokenService jwtTokenService,
+        JwtSettings jwtSettings,
+        ITenantRepository? tenantRepository = null)
     {
         _userRepository = userRepository;
         _userSessionRepository = userSessionRepository;
-        _tokenService = tokenService;
-        _configuration = configuration;
+        _jwtTokenService = jwtTokenService;
+        _jwtSettings = jwtSettings;
+        _tenantRepository = tenantRepository;
     }
 
-    // ============================================================
     // REGISTER
-    // ============================================================
-
     public async Task<LoginResponse> Register(RegisterRequest request)
     {
         var errors = new List<string>();
 
+        // Collect Name validation errors
         errors.AddRange(ValidateName(request.Name));
+
+        // Collect Email validation errors
         errors.AddRange(ValidateEmail(request.Email));
 
+        // Check passwords match
         if (request.Password != request.ConfirmPassword)
         {
             errors.Add("Passwords do not match");
         }
 
+        // Collect Password validation errors
         errors.AddRange(ValidatePassword(request.Password));
 
+        // Return all validation errors together
         if (errors.Any())
         {
             return new LoginResponse
@@ -82,15 +88,16 @@ public class AuthService
         var user = new User
         {
             Name = request.Name.Trim(),
+            Username = email,
             Email = email,
-
             PasswordHash =
                 BCrypt.Net.BCrypt.HashPassword(request.Password),
-
             TenantId = 1,
-            ApplicationId = 1,
-            Role = "User",
-            Permissions = "LOGIN"
+            ApplicationId = _jwtSettings.ApplicationId,
+            Roles = new List<string> { "Customer" },
+            Permissions = new List<string> { "billing.view", "billing.create" },
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
         };
 
         await _userRepository.AddAsync(user);
@@ -100,45 +107,54 @@ public class AuthService
             Success = true,
             Message = "Registration successful",
             AccessToken = null,
-            RefreshToken = null,
-            ExpiresIn = 0,
             Errors = null
         };
     }
 
-    // ============================================================
     // LOGIN
-    // ============================================================
-
-    public async Task<LoginResponse> Login(LoginRequest request)
+    public async Task<LoginResponse> Login(
+        LoginRequest request,
+        string? ipAddress = null,
+        string? userAgent = null,
+        string? deviceInfo = null)
     {
-        if (string.IsNullOrWhiteSpace(request.Email) ||
-            string.IsNullOrWhiteSpace(request.Password))
+        var identifier = request.Email.Trim().ToLower();
+
+        if (string.IsNullOrWhiteSpace(identifier) || string.IsNullOrWhiteSpace(request.Password))
         {
             return new LoginResponse
             {
                 Success = false,
-                Message = "Email and password are required",
-                AccessToken = null,
-                RefreshToken = null,
-                ExpiresIn = 0
+                Message = "Email and password are required"
             };
         }
 
-        var email = request.Email.Trim().ToLower();
-
-        var user =
-            await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByEmailOrUsernameAsync(identifier);
 
         if (user == null)
         {
             return new LoginResponse
             {
                 Success = false,
-                Message = "Invalid email or password",
-                AccessToken = null,
-                RefreshToken = null,
-                ExpiresIn = 0
+                Message = "Invalid credentials"
+            };
+        }
+
+        if (!user.IsActive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Account is inactive or disabled"
+            };
+        }
+
+        if (user.Tenant != null && !user.Tenant.IsActive)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company account is inactive or suspended"
             };
         }
 
@@ -153,387 +169,368 @@ public class AuthService
             return new LoginResponse
             {
                 Success = false,
-                Message = "Invalid email or password",
-                AccessToken = null,
-                RefreshToken = null,
-                ExpiresIn = 0
+                Message = "Invalid credentials"
             };
         }
 
-        // --------------------------------------------------------
-        // Generate Access Token
-        // --------------------------------------------------------
+        // 1. Generate Refresh Token & hash it
+        var rawRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var refreshTokenHash = _jwtTokenService.HashRefreshToken(rawRefreshToken);
+        var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+        var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.SessionTimeoutMinutes);
 
-        var accessToken =
-            _tokenService.GenerateAccessToken(user);
-
-        // --------------------------------------------------------
-        // Generate Refresh Token
-        // --------------------------------------------------------
-
-        var refreshToken =
-            _tokenService.GenerateRefreshToken();
-
-        // Never store the raw refresh token in the database.
-        // Store only its SHA-256 hash.
-        var refreshTokenHash =
-            _tokenService.HashToken(refreshToken);
-
-        // --------------------------------------------------------
-        // Refresh token expiry
-        // --------------------------------------------------------
-
-        var refreshExpiryDays =
-            Convert.ToDouble(
-                _configuration[
-                    "Authentication:RefreshTokenExpiryDays"
-                ] ?? "7"
-            );
-
-        var now = DateTime.UtcNow;
-
-        // --------------------------------------------------------
-        // Create database session
-        // --------------------------------------------------------
-
+        // 2. Persist session in DB
         var session = new UserSession
         {
             UserId = user.Id,
-
             RefreshTokenHash = refreshTokenHash,
-
-            CreatedAt = now,
-
-            LastActivityAt = now,
-
-            ExpiresAt = now.AddDays(refreshExpiryDays),
-
-            IsRevoked = false
+            RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
+            SessionExpiresAtUtc = sessionExpiresAtUtc,
+            IsRevoked = false,
+            CreatedAtUtc = DateTime.UtcNow,
+            LastActivityAtUtc = DateTime.UtcNow,
+            UserAgent = userAgent,
+            DeviceInfo = deviceInfo ?? ParseDeviceInfo(userAgent)
         };
 
-        await _userSessionRepository.AddAsync(session);
+        await _userSessionRepository.CreateSessionAsync(session);
 
-        // --------------------------------------------------------
-        // Return tokens to client
-        // --------------------------------------------------------
+        // 3. Generate JWT Access Token with claims
+        var (accessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, session.Id);
+
+        var primaryRole = user.Roles.FirstOrDefault() ?? "Customer";
+        var claimsDto = new UserClaimsDto
+        {
+            UserId = user.Id,
+            Name = user.Name,
+            Username = user.Username,
+            Email = user.Email,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = primaryRole,
+            ApplicationId = user.ApplicationId,
+            Roles = user.Roles,
+            Permissions = user.Permissions,
+            SessionId = session.Id
+        };
 
         return new LoginResponse
         {
             Success = true,
-
             Message = "Login successful",
-
             AccessToken = accessToken,
-
-            RefreshToken = refreshToken,
-
-            ExpiresIn =
-                _tokenService.GetAccessTokenExpirySeconds(),
-
-            Errors = null
+            RefreshToken = rawRefreshToken,
+            TokenType = "Bearer",
+            ExpiresAtUtc = accessExpiresAtUtc,
+            RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
+            User = claimsDto
         };
     }
 
-    // ============================================================
-    // REFRESH TOKEN
-    // ============================================================
-
-    public async Task<RefreshTokenResponse> RefreshToken(
-        RefreshTokenRequest request)
+    // REFRESH TOKEN (Rotation & Reuse Detection)
+    public async Task<LoginResponse> RefreshTokenAsync(
+        string refreshToken,
+        string? ipAddress = null,
+        string? userAgent = null,
+        string? deviceInfo = null)
     {
-        if (string.IsNullOrWhiteSpace(request?.RefreshToken))
+        if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            return new RefreshTokenResponse
+            return new LoginResponse
             {
                 Success = false,
                 Message = "Refresh token is required"
             };
         }
 
-        // Hash the refresh token received from client
-        var tokenHash =
-            _tokenService.HashToken(
-                request.RefreshToken.Trim()
-            );
-
-        // Find session using hash
-        var session =
-            await _userSessionRepository
-                .GetByRefreshTokenHashAsync(tokenHash);
-
-        // --------------------------------------------------------
-        // Session does not exist
-        // --------------------------------------------------------
+        var tokenHash = _jwtTokenService.HashRefreshToken(refreshToken);
+        var session = await _userSessionRepository.GetByTokenHashAsync(tokenHash);
 
         if (session == null)
         {
-            return new RefreshTokenResponse
+            return new LoginResponse
             {
                 Success = false,
                 Message = "Invalid refresh token"
             };
         }
 
-        // --------------------------------------------------------
-        // Refresh token already revoked
-        // --------------------------------------------------------
-
+        // Detect Reuse of Revoked Token -> Revoke all sessions for this user!
         if (session.IsRevoked)
         {
-            return new RefreshTokenResponse
-            {
-                Success = false,
-                Message = "Refresh token has been revoked"
-            };
-        }
-
-        // --------------------------------------------------------
-        // Refresh token expired
-        // --------------------------------------------------------
-
-        if (DateTime.UtcNow > session.ExpiresAt)
-        {
-            session.IsRevoked = true;
-            session.RevokedAt = DateTime.UtcNow;
-
-            await _userSessionRepository.UpdateAsync(session);
-
-            return new RefreshTokenResponse
-            {
-                Success = false,
-                Message = "Refresh token has expired"
-            };
-        }
-
-        // --------------------------------------------------------
-        // Session inactivity timeout
-        // --------------------------------------------------------
-
-        var sessionTimeoutMinutes =
-            Convert.ToDouble(
-                _configuration[
-                    "Authentication:SessionTimeoutMinutes"
-                ] ?? "60"
+            await _userSessionRepository.RevokeAllUserSessionsAsync(
+                session.UserId,
+                "Security Alert: Revoked refresh token reuse detected"
             );
 
-        if (
-            sessionTimeoutMinutes > 0 &&
-            DateTime.UtcNow >
-            session.LastActivityAt
-                .AddMinutes(sessionTimeoutMinutes)
-        )
-        {
-            session.IsRevoked = true;
-            session.RevokedAt = DateTime.UtcNow;
-
-            await _userSessionRepository.UpdateAsync(session);
-
-            return new RefreshTokenResponse
+            return new LoginResponse
             {
                 Success = false,
-                Message = "Session has expired due to inactivity"
+                Message = "Security alert: Revoked refresh token reuse detected. All active sessions have been terminated."
             };
         }
 
-        // --------------------------------------------------------
-        // Get user
-        // --------------------------------------------------------
-
-        var user =
-            session.User ??
-            await _userRepository.GetByIdAsync(
-                session.UserId
-            );
-
-        if (user == null)
+        // Check if refresh token has expired
+        if (session.RefreshTokenExpiresAtUtc <= DateTime.UtcNow)
         {
-            return new RefreshTokenResponse
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Refresh token expired");
+
+            return new LoginResponse
             {
                 Success = false,
-                Message = "User not found"
+                Message = "Refresh token has expired. Please login again."
             };
         }
 
-        // --------------------------------------------------------
-        // TOKEN ROTATION
-        //
-        // Old refresh token is immediately revoked.
-        // --------------------------------------------------------
+        // Check absolute session expiration
+        if (session.SessionExpiresAtUtc <= DateTime.UtcNow)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Session lifetime expired");
 
-        session.IsRevoked = true;
-        session.RevokedAt = DateTime.UtcNow;
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Session has expired. Please login again."
+            };
+        }
 
-        await _userSessionRepository.UpdateAsync(session);
+        // Check inactivity timeout
+        var minutesSinceLastActivity = (DateTime.UtcNow - session.LastActivityAtUtc).TotalMinutes;
+        if (minutesSinceLastActivity > _jwtSettings.InactivityTimeoutMinutes)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "Inactivity timeout exceeded");
 
-        // --------------------------------------------------------
-        // Generate new Access Token
-        // --------------------------------------------------------
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Session expired due to inactivity. Please login again."
+            };
+        }
 
-        var newAccessToken =
-            _tokenService.GenerateAccessToken(user);
+        var user = await _userRepository.GetByIdAsync(session.UserId);
+        if (user == null || !user.IsActive)
+        {
+            await _userSessionRepository.RevokeSessionAsync(session.Id, "User deactivated or not found");
 
-        // --------------------------------------------------------
-        // Generate new Refresh Token
-        // --------------------------------------------------------
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "User is not active"
+            };
+        }
 
-        var newRefreshToken =
-            _tokenService.GenerateRefreshToken();
+        // Token Rotation: Generate new Refresh Token and revoke old one
+        var newRawRefreshToken = _jwtTokenService.GenerateRefreshToken();
+        var newRefreshTokenHash = _jwtTokenService.HashRefreshToken(newRawRefreshToken);
 
-        var newRefreshTokenHash =
-            _tokenService.HashToken(newRefreshToken);
+        // Revoke the old token and link to the replacement
+        await _userSessionRepository.RevokeSessionAsync(
+            session.Id,
+            "Rotated via refresh token",
+            newRefreshTokenHash
+        );
 
-        var refreshExpiryDays =
-            Convert.ToDouble(
-                _configuration[
-                    "Authentication:RefreshTokenExpiryDays"
-                ] ?? "7"
-            );
-
-        var now = DateTime.UtcNow;
-
-        // --------------------------------------------------------
-        // Create new session
-        // --------------------------------------------------------
+        // Create new session entry for rotation
+        var refreshExpiresAtUtc = DateTime.UtcNow.AddDays(_jwtSettings.RefreshTokenExpirationDays);
+        var sessionExpiresAtUtc = DateTime.UtcNow.AddMinutes(_jwtSettings.SessionTimeoutMinutes);
 
         var newSession = new UserSession
         {
             UserId = user.Id,
-
             RefreshTokenHash = newRefreshTokenHash,
-
-            CreatedAt = now,
-
-            LastActivityAt = now,
-
-            ExpiresAt =
-                now.AddDays(refreshExpiryDays),
-
-            IsRevoked = false
+            RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
+            SessionExpiresAtUtc = sessionExpiresAtUtc,
+            IsRevoked = false,
+            CreatedAtUtc = DateTime.UtcNow,
+            LastActivityAtUtc = DateTime.UtcNow,
+            UserAgent = userAgent ?? session.UserAgent,
+            DeviceInfo = deviceInfo ?? session.DeviceInfo
         };
 
-        await _userSessionRepository.AddAsync(newSession);
+        await _userSessionRepository.CreateSessionAsync(newSession);
 
-        // --------------------------------------------------------
-        // Return new tokens
-        // --------------------------------------------------------
+        // Generate new JWT Access Token
+        var (newAccessToken, accessExpiresAtUtc) = _jwtTokenService.GenerateAccessToken(user, newSession.Id);
 
-        return new RefreshTokenResponse
+        var claimsDto = new UserClaimsDto
+        {
+            UserId = user.Id,
+            Name = user.Name,
+            Username = user.Username,
+            Email = user.Email,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = user.Roles.FirstOrDefault() ?? "User",
+            ApplicationId = user.ApplicationId,
+            Roles = user.Roles,
+            Permissions = user.Permissions,
+            SessionId = newSession.Id
+        };
+
+        return new LoginResponse
         {
             Success = true,
-
             Message = "Token refreshed successfully",
-
             AccessToken = newAccessToken,
-
-            RefreshToken = newRefreshToken,
-
-            ExpiresIn =
-                _tokenService.GetAccessTokenExpirySeconds()
+            RefreshToken = newRawRefreshToken,
+            TokenType = "Bearer",
+            ExpiresAtUtc = accessExpiresAtUtc,
+            RefreshTokenExpiresAtUtc = refreshExpiresAtUtc,
+            User = claimsDto
         };
     }
 
-    // ============================================================
-    // LOGOUT
-    // ============================================================
-
-    public async Task<bool> Logout(string? refreshToken)
+    // LOGOUT (Current session)
+    public async Task<LoginResponse> LogoutAsync(string? refreshToken, int? sessionId = null)
     {
-        if (string.IsNullOrWhiteSpace(refreshToken))
+        if (!string.IsNullOrWhiteSpace(refreshToken))
         {
-            return true;
+            var tokenHash = _jwtTokenService.HashRefreshToken(refreshToken);
+            var session = await _userSessionRepository.GetByTokenHashAsync(tokenHash);
+            if (session != null)
+            {
+                await _userSessionRepository.RevokeSessionAsync(session.Id, "User logged out");
+                return new LoginResponse
+                {
+                    Success = true,
+                    Message = "Logged out successfully"
+                };
+            }
         }
 
-        var tokenHash =
-            _tokenService.HashToken(
-                refreshToken.Trim()
-            );
-
-        var session =
-            await _userSessionRepository
-                .GetByRefreshTokenHashAsync(tokenHash);
-
-        if (session != null &&
-            !session.IsRevoked)
+        if (sessionId.HasValue)
         {
-            session.IsRevoked = true;
-
-            session.RevokedAt =
-                DateTime.UtcNow;
-
-            await _userSessionRepository
-                .UpdateAsync(session);
+            var session = await _userSessionRepository.GetByIdAsync(sessionId.Value);
+            if (session != null)
+            {
+                await _userSessionRepository.RevokeSessionAsync(sessionId.Value, "User logged out");
+                return new LoginResponse
+                {
+                    Success = true,
+                    Message = "Logged out successfully"
+                };
+            }
         }
 
-        return true;
+        return new LoginResponse
+        {
+            Success = false,
+            Message = "Session was already closed or not found"
+        };
     }
 
-    // ============================================================
-    // LOGOUT ALL SESSIONS
-    // ============================================================
-
-    public async Task<bool> LogoutAll(int userId)
+    // LOGOUT ALL (All active devices / sessions)
+    public async Task<LoginResponse> LogoutAllAsync(int userId)
     {
-        if (userId <= 0)
+        await _userSessionRepository.RevokeAllUserSessionsAsync(
+            userId,
+            "User logged out from all active sessions/devices"
+        );
+
+        return new LoginResponse
         {
-            return false;
-        }
-
-        await _userSessionRepository
-            .RevokeAllUserSessionsAsync(userId);
-
-        return true;
+            Success = true,
+            Message = "Successfully logged out from all active devices and sessions"
+        };
     }
 
-    // ============================================================
+    // GET USER SESSIONS
+    public async Task<List<UserSessionDto>> GetUserSessionsAsync(int userId)
+    {
+        var sessions = await _userSessionRepository.GetAllSessionsByUserIdAsync(userId);
+
+        return sessions.Select(s => new UserSessionDto
+        {
+            SessionId = s.Id,
+            UserId = s.UserId,
+            LoginTimeUtc = s.CreatedAtUtc,
+            LastActivityAtUtc = s.LastActivityAtUtc,
+            LogoutAtUtc = s.LogoutAtUtc,
+            SessionExpiresAtUtc = s.SessionExpiresAtUtc,
+            IsRevoked = s.IsRevoked,
+            IsActive = !s.IsRevoked && s.RefreshTokenExpiresAtUtc > DateTime.UtcNow && s.SessionExpiresAtUtc > DateTime.UtcNow,
+            RevocationReason = s.RevocationReason,
+            UserAgent = s.UserAgent,
+            DeviceInfo = s.DeviceInfo
+        }).ToList();
+    }
+
+    // GET USER PROFILE / CLAIMS
+    public async Task<UserClaimsDto?> GetUserProfileAsync(int userId, int? sessionId = null)
+    {
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return null;
+
+        var primaryRole = user.Roles.FirstOrDefault() ?? "Customer";
+        return new UserClaimsDto
+        {
+            UserId = user.Id,
+            Name = user.Name,
+            Username = user.Username,
+            Email = user.Email,
+            TenantId = user.TenantId?.ToString(),
+            TenantCode = user.Tenant?.TenantCode,
+            TenantName = user.Tenant?.Name,
+            Role = primaryRole,
+            ApplicationId = user.ApplicationId,
+            Roles = user.Roles,
+            Permissions = user.Permissions,
+            SessionId = sessionId
+        };
+    }
+
+    private static string ParseDeviceInfo(string? userAgent)
+    {
+        if (string.IsNullOrWhiteSpace(userAgent))
+            return "Unknown Device";
+
+        if (userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase))
+            return "Mobile Browser";
+        if (userAgent.Contains("Windows", StringComparison.OrdinalIgnoreCase))
+            return "Windows Desktop";
+        if (userAgent.Contains("Macintosh", StringComparison.OrdinalIgnoreCase))
+            return "macOS Desktop";
+        if (userAgent.Contains("Linux", StringComparison.OrdinalIgnoreCase))
+            return "Linux Client";
+
+        return "Web Client";
+    }
+
     // FORGOT PASSWORD
-    // ============================================================
-
-    public async Task<string?> ForgotPassword(
-        ForgotPasswordRequest request)
+    public async Task<string?> ForgotPassword(ForgotPasswordRequest request)
     {
-        var email =
-            request.Email.Trim().ToLower();
+        var email = request.Email.Trim().ToLower();
 
-        var user =
-            await _userRepository.GetByEmailAsync(email);
+        var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null)
         {
             return null;
         }
 
-        var otp =
-            RandomNumberGenerator
-                .GetInt32(100000, 1000000)
-                .ToString();
+        var otp = RandomNumberGenerator
+            .GetInt32(100000, 1000000)
+            .ToString();
 
         // OTP valid for 10 minutes
         _otpStore[email] =
-            (
-                otp,
-                DateTime.UtcNow.AddMinutes(10)
-            );
+            (otp, DateTime.UtcNow.AddMinutes(10));
 
-        // Remove previous verification
+        // Remove previous verification if requesting a new OTP
         _verifiedEmails.Remove(email);
 
         return otp;
     }
 
-    // ============================================================
     // VERIFY OTP
-    // ============================================================
-
-    public bool VerifyOtp(
-        string email,
-        string otp)
+    public bool VerifyOtp(string email, string otp)
     {
-        email =
-            email.Trim().ToLower();
+        email = email.Trim().ToLower();
 
-        if (!_otpStore.TryGetValue(
-                email,
-                out var storedOtp))
+        if (!_otpStore.TryGetValue(email, out var storedOtp))
         {
             return false;
         }
@@ -542,7 +539,6 @@ public class AuthService
         if (DateTime.UtcNow > storedOtp.Expiry)
         {
             _otpStore.Remove(email);
-
             return false;
         }
 
@@ -552,27 +548,22 @@ public class AuthService
             return false;
         }
 
-        // OTP verified
+        // OTP verified successfully
         _otpStore.Remove(email);
-
         _verifiedEmails.Add(email);
 
         return true;
     }
 
-    // ============================================================
     // RESET PASSWORD
-    // ============================================================
-
     public async Task<LoginResponse> ResetPassword(
         ResetPasswordRequest request)
     {
-        var email =
-            request.Email.Trim().ToLower();
+        var email = request.Email.Trim().ToLower();
 
-        // OTP must be verified first
+        // Check whether OTP was verified
         if (!_verifiedEmails.Contains(email))
-        {
+        { 
             return new LoginResponse
             {
                 Success = false,
@@ -583,19 +574,17 @@ public class AuthService
         var errors = new List<string>();
 
         // Check passwords match
-        if (request.NewPassword !=
-            request.ConfirmPassword)
+        if (request.NewPassword != request.ConfirmPassword)
         {
             errors.Add("Passwords do not match");
         }
 
-        // Validate new password
+        // Collect all password validation errors
         errors.AddRange(
-            ValidatePassword(
-                request.NewPassword
-            )
+            ValidatePassword(request.NewPassword)
         );
 
+        // Return all validation errors together
         if (errors.Any())
         {
             return new LoginResponse
@@ -607,8 +596,7 @@ public class AuthService
         }
 
         var user =
-            await _userRepository
-                .GetByEmailAsync(email);
+            await _userRepository.GetByEmailAsync(email);
 
         if (user == null)
         {
@@ -619,7 +607,7 @@ public class AuthService
             };
         }
 
-        // Hash new password
+        // Hash and update password
         user.PasswordHash =
             BCrypt.Net.BCrypt.HashPassword(
                 request.NewPassword
@@ -627,7 +615,7 @@ public class AuthService
 
         await _userRepository.UpdateAsync(user);
 
-        // Remove OTP verification
+        // Remove verification after successful password reset
         _verifiedEmails.Remove(email);
 
         return new LoginResponse
@@ -638,10 +626,7 @@ public class AuthService
         };
     }
 
-    // ============================================================
     // NAME VALIDATION
-    // ============================================================
-
     private List<string> ValidateName(string name)
     {
         var errors = new List<string>();
@@ -649,33 +634,24 @@ public class AuthService
         if (string.IsNullOrWhiteSpace(name))
         {
             errors.Add("Name is required");
-
             return errors;
         }
 
         if (name.Trim().Length < 2)
         {
-            errors.Add(
-                "Name must be at least 2 characters"
-            );
+            errors.Add("Name must be at least 2 characters");
         }
 
         if (!name.All(ch =>
-            char.IsLetter(ch) ||
-            char.IsWhiteSpace(ch)))
+            char.IsLetter(ch) || char.IsWhiteSpace(ch)))
         {
-            errors.Add(
-                "Name can contain only letters"
-            );
+            errors.Add("Name can contain only letters");
         }
 
         return errors;
     }
 
-    // ============================================================
     // EMAIL VALIDATION
-    // ============================================================
-
     private List<string> ValidateEmail(string email)
     {
         var errors = new List<string>();
@@ -683,16 +659,13 @@ public class AuthService
         if (string.IsNullOrWhiteSpace(email))
         {
             errors.Add("Email is required");
-
             return errors;
         }
 
         var emailPattern =
             @"^[^@\s]+@[^@\s]+\.[^@\s]+$";
 
-        if (!Regex.IsMatch(
-                email,
-                emailPattern))
+        if (!Regex.IsMatch(email, emailPattern))
         {
             errors.Add(
                 "Please enter a valid email address"
@@ -702,19 +675,14 @@ public class AuthService
         return errors;
     }
 
-    // ============================================================
     // PASSWORD VALIDATION
-    // ============================================================
-
-    private List<string> ValidatePassword(
-        string password)
+    private List<string> ValidatePassword(string password)
     {
         var errors = new List<string>();
 
         if (string.IsNullOrWhiteSpace(password))
         {
             errors.Add("Password is required");
-
             return errors;
         }
 
@@ -746,8 +714,7 @@ public class AuthService
             );
         }
 
-        if (!password.Any(
-                ch => !char.IsLetterOrDigit(ch)))
+        if (!password.Any(ch => !char.IsLetterOrDigit(ch)))
         {
             errors.Add(
                 "Password must contain at least one special character"
@@ -755,5 +722,163 @@ public class AuthService
         }
 
         return errors;
+    }
+
+    // REGISTER COMPANY (Onboard new Tenant and Company Owner)
+    public async Task<LoginResponse> RegisterCompanyAsync(RegisterCompanyRequest request)
+    {
+        var errors = new List<string>();
+        if (string.IsNullOrWhiteSpace(request.CompanyName))
+            errors.Add("Company name is required");
+        if (string.IsNullOrWhiteSpace(request.TenantCode))
+            errors.Add("Tenant code is required");
+        errors.AddRange(ValidateName(request.OwnerName));
+        errors.AddRange(ValidateEmail(request.Email));
+        errors.AddRange(ValidatePassword(request.Password));
+
+        if (errors.Any())
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Validation failed",
+                Errors = errors
+            };
+        }
+
+        var normalizedCode = request.TenantCode.Trim().ToLower();
+        if (_tenantRepository != null && await _tenantRepository.ExistsByCodeAsync(normalizedCode))
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Company tenant code is already taken"
+            };
+        }
+
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Email already registered"
+            };
+        }
+
+        var tenant = new Tenant
+        {
+            Name = request.CompanyName.Trim(),
+            TenantCode = normalizedCode,
+            CompanyEmail = request.Email.Trim().ToLower(),
+            Phone = request.Phone,
+            TaxId = request.TaxId,
+            Address = request.Address,
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        if (_tenantRepository != null)
+        {
+            await _tenantRepository.CreateAsync(tenant);
+        }
+
+        var owner = new User
+        {
+            Name = request.OwnerName.Trim(),
+            Username = request.Email.Trim().ToLower(),
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            TenantId = tenant.Id > 0 ? tenant.Id : null,
+            Tenant = tenant,
+            Roles = new List<string> { "TenantAdmin" },
+            Permissions = new List<string> { "billing.admin", "billing.view", "billing.create", "billing.manage_customers" },
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(owner);
+
+        return new LoginResponse
+        {
+            Success = true,
+            Message = "Company registered successfully",
+            User = new UserClaimsDto
+            {
+                UserId = owner.Id,
+                Name = owner.Name,
+                Email = owner.Email,
+                TenantId = owner.TenantId?.ToString(),
+                TenantCode = tenant.TenantCode,
+                TenantName = tenant.Name,
+                Role = "TenantAdmin",
+                Roles = owner.Roles,
+                Permissions = owner.Permissions
+            }
+        };
+    }
+
+    // REGISTER CUSTOMER (Company owner creates customer under their tenant)
+    public async Task<LoginResponse> RegisterCustomerAsync(RegisterRequest request, int tenantId)
+    {
+        var errors = new List<string>();
+        errors.AddRange(ValidateName(request.Name));
+        errors.AddRange(ValidateEmail(request.Email));
+        if (request.Password != request.ConfirmPassword)
+        {
+            errors.Add("Passwords do not match");
+        }
+        errors.AddRange(ValidatePassword(request.Password));
+
+        if (errors.Any())
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Validation failed",
+                Errors = errors
+            };
+        }
+
+        var existingUser = await _userRepository.GetByEmailAsync(request.Email);
+        if (existingUser != null)
+        {
+            return new LoginResponse
+            {
+                Success = false,
+                Message = "Email already registered"
+            };
+        }
+
+        var customer = new User
+        {
+            Name = request.Name.Trim(),
+            Username = request.Email.Trim().ToLower(),
+            Email = request.Email.Trim().ToLower(),
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
+            TenantId = tenantId,
+            Roles = new List<string> { "Customer" },
+            Permissions = new List<string> { "billing.view" },
+            IsActive = true,
+            CreatedAtUtc = DateTime.UtcNow
+        };
+
+        await _userRepository.AddAsync(customer);
+
+        return new LoginResponse
+        {
+            Success = true,
+            Message = "Customer registered successfully",
+            User = new UserClaimsDto
+            {
+                UserId = customer.Id,
+                Name = customer.Name,
+                Email = customer.Email,
+                TenantId = customer.TenantId?.ToString(),
+                Role = "Customer",
+                Roles = customer.Roles,
+                Permissions = customer.Permissions
+            }
+        };
     }
 }

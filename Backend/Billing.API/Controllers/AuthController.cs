@@ -1,7 +1,6 @@
-using Billing.Application.Services;
-using Billing.Contracts;
 using Billing.Infrastructure.Services;
-using Microsoft.AspNetCore.Authorization;
+using Billing.Application;
+using Billing.Contracts;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Billing.API.Controllers;
@@ -23,9 +22,13 @@ public class AuthController : ControllerBase
 
     // LOGIN
     [HttpPost("login")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        var response = await _authService.Login(request);
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        var response = await _authService.Login(request, ipAddress, userAgent);
 
         if (!response.Success)
         {
@@ -33,6 +36,120 @@ public class AuthController : ControllerBase
         }
 
         return Ok(response);
+    }
+
+    // REFRESH TOKEN (Rotation & Reuse Detection)
+    [HttpPost("refresh-token")]
+    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    {
+        var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var userAgent = Request.Headers.UserAgent.ToString();
+
+        var response = await _authService.RefreshTokenAsync(request.RefreshToken, ipAddress, userAgent);
+
+        if (!response.Success)
+        {
+            return Unauthorized(response);
+        }
+
+        return Ok(response);
+    }
+
+    // LOGOUT (Current Session)
+    [HttpPost("logout")]
+    public async Task<IActionResult> Logout(
+        [FromBody(EmptyBodyBehavior = Microsoft.AspNetCore.Mvc.ModelBinding.EmptyBodyBehavior.Allow)] LogoutRequest? request = null)
+    {
+        int? sessionId = null;
+        var sidClaim = User.FindFirst("sessionId") ??
+                       User.FindFirst(System.Security.Claims.ClaimTypes.Sid) ??
+                       User.FindFirst("sid");
+
+        if (sidClaim != null && int.TryParse(sidClaim.Value, out var sid))
+        {
+            sessionId = sid;
+        }
+
+        var refreshToken = string.Equals(request?.RefreshToken?.Trim(), "string", StringComparison.OrdinalIgnoreCase)
+            ? null
+            : request?.RefreshToken;
+
+        var response = await _authService.LogoutAsync(refreshToken, sessionId);
+        if (!response.Success && sessionId == null && string.IsNullOrWhiteSpace(refreshToken))
+        {
+            return BadRequest(new { success = false, message = "Please provide an active Bearer token or a valid RefreshToken to logout." });
+        }
+
+        return Ok(response);
+    }
+
+    // LOGOUT ALL (All active devices/sessions)
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpPost("logout-all")]
+    public async Task<IActionResult> LogoutAll()
+    {
+        var userIdClaim = User.FindFirst("UserId") ??
+                          User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ??
+                          User.FindFirst("sub");
+
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Unauthorized(new { message = "User identifier claim not found in token" });
+        }
+
+        var response = await _authService.LogoutAllAsync(userId);
+        return Ok(response);
+    }
+
+    // GET CURRENT USER PROFILE & CLAIMS
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetProfile()
+    {
+        var userIdClaim = User.FindFirst("UserId") ??
+                          User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ??
+                          User.FindFirst("sub");
+
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Unauthorized(new { message = "User identifier claim not found in token" });
+        }
+
+        int? sessionId = null;
+        var sidClaim = User.FindFirst("sessionId") ??
+                       User.FindFirst(System.Security.Claims.ClaimTypes.Sid) ??
+                       User.FindFirst("sid");
+
+        if (sidClaim != null && int.TryParse(sidClaim.Value, out var sid))
+        {
+            sessionId = sid;
+        }
+
+        var profile = await _authService.GetUserProfileAsync(userId, sessionId);
+        if (profile == null)
+        {
+            return NotFound(new { message = "User not found" });
+        }
+
+        return Ok(profile);
+    }
+
+    // GET USER ACTIVE & HISTORICAL SESSIONS
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    [HttpGet("sessions")]
+    public async Task<IActionResult> GetSessions()
+    {
+        var userIdClaim = User.FindFirst("UserId") ??
+                          User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier) ??
+                          User.FindFirst("sub");
+
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+        {
+            return Unauthorized(new { message = "User identifier claim not found in token" });
+        }
+
+        var sessions = await _authService.GetUserSessionsAsync(userId);
+        return Ok(sessions);
     }
 
     // FORGOT PASSWORD
@@ -115,77 +232,55 @@ public class AuthController : ControllerBase
         return Ok(response);
     }
 
-    // REFRESH TOKEN
-    [HttpPost("refresh-token")]
-    public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+    // REGISTER COMPANY (Onboard new Tenant and Company Owner)
+    [HttpPost("register-company")]
+    public async Task<IActionResult> RegisterCompany([FromBody] RegisterCompanyRequest request)
     {
-        var response = await _authService.RefreshToken(request);
+        var response = await _authService.RegisterCompanyAsync(request);
 
         if (!response.Success)
         {
-            return Unauthorized(response);
+            return BadRequest(response);
         }
 
         return Ok(response);
     }
 
-    // LOGOUT
-    [HttpPost("logout")]
-    public async Task<IActionResult> Logout([FromBody] LogoutRequest? request)
+    // ROLE-PROTECTED TEST ENDPOINTS
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "TenantAdmin")]
+    [HttpGet("company-dashboard")]
+    public IActionResult GetCompanyDashboard()
     {
-        await _authService.Logout(request?.RefreshToken);
-        return Ok(new { success = true, message = "Logged out successfully" });
-    }
-
-    // LOGOUT ALL SESSIONS
-    [Authorize]
-    [HttpPost("logout-all")]
-    public async Task<IActionResult> LogoutAll()
-    {
-        var userIdClaim = User.FindFirst("UserId")?.Value
-            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-
-        if (int.TryParse(userIdClaim, out var userId))
-        {
-            await _authService.LogoutAll(userId);
-            return Ok(new { success = true, message = "All sessions logged out successfully" });
-        }
-
-        return Unauthorized(new { success = false, message = "Invalid user identity" });
-    }
-
-    // CURRENT USER INFO (PROTECTED ENDPOINT)
-    [Authorize]
-    [HttpGet("me")]
-    public IActionResult GetCurrentUser()
-    {
-        var userIdClaim = User.FindFirst("UserId")?.Value
-            ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
-        var applicationIdClaim = User.FindFirst("ApplicationId")?.Value;
-        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value;
-        var name = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value;
-        var role = User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
-            ?? User.FindFirst("Role")?.Value;
-        var permissions = User.FindAll("Permission").Select(p => p.Value).ToList();
-        if (!permissions.Any())
-        {
-            var rawPermissions = User.FindFirst("Permissions")?.Value;
-            if (!string.IsNullOrWhiteSpace(rawPermissions))
-            {
-                permissions = rawPermissions.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
-            }
-        }
-
+        var tenantName = User.FindFirst("tenant_name")?.Value ?? "Company";
+        var tenantCode = User.FindFirst("tenant_code")?.Value ?? "";
         return Ok(new
         {
-            userId = int.TryParse(userIdClaim, out var uid) ? uid : 0,
-            email,
-            name,
-            tenantId = int.TryParse(tenantIdClaim, out var tid) ? tid : 0,
-            applicationId = int.TryParse(applicationIdClaim, out var aid) ? aid : 0,
-            role,
-            permissions
+            message = $"Welcome to {tenantName} Owner Dashboard",
+            tenantCode,
+            role = "TenantAdmin"
+        });
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Customer")]
+    [HttpGet("customer-dashboard")]
+    public IActionResult GetCustomerDashboard()
+    {
+        var email = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+        return Ok(new
+        {
+            message = $"Welcome Customer ({email})",
+            role = "Customer"
+        });
+    }
+
+    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "SuperAdmin")]
+    [HttpGet("platform-dashboard")]
+    public IActionResult GetPlatformDashboard()
+    {
+        return Ok(new
+        {
+            message = "Welcome Platform SuperAdmin",
+            role = "SuperAdmin"
         });
     }
 }

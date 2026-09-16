@@ -1,6 +1,9 @@
 # .NET
 **/bin/
 **/obj/
+[Bb]in/
+[Oo]bj/
+.vite/
 
 # Visual Studio
 .vs/

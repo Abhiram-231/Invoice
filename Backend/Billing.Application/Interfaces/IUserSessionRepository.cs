@@ -1,16 +1,24 @@
-﻿using Billing.Domain.Entities;
+using Billing.Domain.Entities;
 
 namespace Billing.Application.Interfaces;
 
 public interface IUserSessionRepository
 {
-    Task<UserSession?> GetByRefreshTokenHashAsync(string refreshTokenHash);
+    Task CreateSessionAsync(UserSession session);
+
+    Task<UserSession?> GetByIdAsync(int id);
+
+    Task<UserSession?> GetByTokenHashAsync(string tokenHash);
 
     Task<List<UserSession>> GetActiveSessionsByUserIdAsync(int userId);
 
-    Task AddAsync(UserSession session);
+    Task<List<UserSession>> GetAllSessionsByUserIdAsync(int userId);
 
-    Task UpdateAsync(UserSession session);
+    Task RevokeSessionAsync(int sessionId, string reason, string? replacedByHash = null);
 
-    Task RevokeAllUserSessionsAsync(int userId);
+    Task RevokeAllUserSessionsAsync(int userId, string reason);
+
+    Task UpdateActivityAsync(int sessionId, DateTime? newSessionExpiry = null);
+
+    Task UpdateSessionAsync(UserSession session);
 }
