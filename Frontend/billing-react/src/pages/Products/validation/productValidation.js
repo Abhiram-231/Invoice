@@ -3,10 +3,10 @@ import * as yup from 'yup';
 const CODE_REGEX = /^[A-Za-z0-9_-]{2,32}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 
-export const PRODUCT_TYPES = ['Product', 'Service'];
-export const CURRENCIES = ['INR', 'USD', 'EUR', 'GBP'];
+export const PRODUCT_TYPES = ['Product', 'Service','E-Commerce',];
+export const CURRENCIES = ['INR', 'USD', 'EUR'];
 export const TAX_CATEGORIES = ['GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'GST 0%', 'Exempt'];
-export const STANDARD_UNITS = ['Piece', 'Unit', 'Hour', 'Day', 'Month', 'Year', 'Project', 'Box', 'Kg', 'Meter'];
+export const STANDARD_UNITS = ['Piece','Set'];
 
 export const productValidationSchema = yup.object({
   // 1. Product Information
@@ -30,11 +30,11 @@ export const productValidationSchema = yup.object({
     .oneOf(PRODUCT_TYPES, 'Select a valid product type')
     .default('Product'),
 
-  category: yup
+  categoryId: yup
     .string()
     .trim()
     .required('Category is required')
-    .max(100, 'Category must not exceed 100 characters'),
+    .matches(/^[1-9][0-9]*$/, 'Select a valid category'),
 
   description: yup
     .string()
@@ -93,7 +93,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   productCode: '',
   name: '',
   type: 'Product',
-  category: '',
+  categoryId: '',
   description: '',
   unit: 'Piece',
   price: '',

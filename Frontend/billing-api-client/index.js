@@ -3,6 +3,7 @@ export * from './apiClient.js';
 export * from './authApi.js';
 export * from './customerApi.js';
 export * from './productApi.js';
+export * from './categoryApi.js';
 export { default as authApi } from './authApi.js';
 export { default as customerApi } from './customerApi.js';
 export { default as productApi } from './productApi.js';

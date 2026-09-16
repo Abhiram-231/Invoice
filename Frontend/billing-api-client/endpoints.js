@@ -16,6 +16,11 @@ export const API_ENDPOINTS = {
     BASE: '/api/v1/products',
     BY_ID: (id) => `/api/v1/products/${id}`,
   },
+  CATEGORIES: {
+    BASE: '/api/v1/categories',
+    BY_ID: (id) => `/api/v1/categories/${encodeURIComponent(id)}`,
+    STATUS: (id) => `/api/v1/categories/${encodeURIComponent(id)}/status`,
+  },
 };
 
 export default API_ENDPOINTS;

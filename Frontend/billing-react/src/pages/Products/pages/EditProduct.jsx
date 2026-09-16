@@ -14,12 +14,6 @@ export function EditProduct() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
 
-  const catalog = useQuery({
-    queryKey: ['products', 'metadata'],
-    queryFn: ({ signal }) => productService.getCatalogMetadata({ signal }),
-    staleTime: 60000,
-  });
-
   const productQuery = useQuery({
     queryKey: ['products', 'detail', id],
     queryFn: ({ signal }) => productService.getProductById(id, { signal }),
@@ -120,7 +114,6 @@ export function EditProduct() {
         isSubmitting={isSubmitting}
         submitError={submitError}
         onCancel={() => navigate('/products')}
-        categories={catalog.data?.categories || []}
       />
     </main>
   );

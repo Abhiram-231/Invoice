@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQueryClient } from '@tanstack/react-query';
 import { Breadcrumbs, Button } from '@mui/material';
 import { ArrowBack } from '@mui/icons-material';
 import { productService } from '../services/productService';
@@ -12,12 +12,6 @@ export function CreateProduct() {
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
-
-  const catalog = useQuery({
-    queryKey: ['products', 'metadata'],
-    queryFn: ({ signal }) => productService.getCatalogMetadata({ signal }),
-    staleTime: 60000,
-  });
 
   const handleSubmit = async (formData) => {
     if (isSubmitting) return;
@@ -65,7 +59,6 @@ export function CreateProduct() {
         isSubmitting={isSubmitting}
         submitError={submitError}
         onCancel={() => navigate('/products')}
-        categories={catalog.data?.categories || []}
       />
     </main>
   );

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
-import { Alert, Avatar, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, Tooltip, MenuItem, Pagination, Skeleton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
+import { Alert, Avatar, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, InputAdornment, LinearProgress, Tooltip, MenuItem, Pagination, PaginationItem, Skeleton, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TableSortLabel, TextField } from '@mui/material';
 import { Add, CheckCircleOutline, GroupOutlined, VisibilityOutlined, EditOutlined, ReceiptLongOutlined, PersonOffOutlined, Search, AccountBalanceWalletOutlined } from '@mui/icons-material';
 import { useCustomers, useCustomerStatus, useCustomerSummary } from '../hooks/useCustomers';
 
@@ -79,7 +79,11 @@ export function CustomerListPage() {
           {customer.status === 'active' && <Tooltip title="Deactivate customer"><IconButton className="action-deactivate" size="small" aria-label={`Deactivate ${customer.name}`} onClick={() => { mutation.reset(); setConfirm(customer); }}><PersonOffOutlined /></IconButton></Tooltip>}
         </div></TableCell>
       </TableRow>)}</TableBody></Table></TableContainer>
-      <footer className="customer-pagination"><div><span>Rows per page</span><TextField select size="small" value={params.pageSize} inputProps={{ 'aria-label': 'Rows per page' }} onChange={event => change({ pageSize: event.target.value, page: 1 })}>{[10, 25, 50, 100].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}</TextField><span>{(data.page - 1) * data.pageSize + 1}–{Math.min(data.page * data.pageSize, data.totalCount)} of {data.totalCount}</span></div><Pagination size="small" count={data.totalPages} page={data.page} onChange={(_, page) => change({ page })} disabled={query.isPlaceholderData} shape="rounded" color="primary" /></footer>
+      <footer className="customer-pagination">
+        <span role="status">Showing {data.totalCount ? (data.page - 1) * data.pageSize + 1 : 0}&ndash;{Math.min(data.page * data.pageSize, data.totalCount)} of {data.totalCount} customers</span>
+        <TextField disabled={query.isFetching} select size="small" label="Rows per page" value={params.pageSize} onChange={event => change({ pageSize: event.target.value, page: 1 })}>{[10, 25, 50, 100].map(n => <MenuItem key={n} value={n}>{n}</MenuItem>)}</TextField>
+        <Pagination aria-label="Customer pages" count={Math.max(1, data.totalPages)} page={data.page} onChange={(_, page) => change({ page })} disabled={query.isFetching} shape="rounded" color="primary" renderItem={item => <PaginationItem {...item} slots={{ previous: () => <span>Previous</span>, next: () => <span>Next</span> }} />} />
+      </footer>
       </>}
     </section>
     <Dialog open={!!confirm} onClose={() => !mutation.isPending && setConfirm(null)} fullWidth maxWidth="xs"><DialogTitle>Deactivate Customer?</DialogTitle><DialogContent><p>Are you sure you want to deactivate “{confirm?.name}”?</p><p className="customer-dialog-note">The customer will become inactive. Existing invoices, payments and historical records will be preserved.</p>{mutation.isError && <Alert severity="error">Unable to update customer. {mutation.error?.message}</Alert>}</DialogContent><DialogActions><Button disabled={mutation.isPending} onClick={() => setConfirm(null)}>Cancel</Button><Button variant="contained" disabled={mutation.isPending} onClick={() => confirm && mutation.mutate(confirm, { onSuccess: () => { setNotice(`Customer deactivated successfully.`); setConfirm(null); } })}>{mutation.isPending ? 'Saving…' : 'Deactivate'}</Button></DialogActions></Dialog>

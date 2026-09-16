@@ -15,8 +15,10 @@ import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder'
 import { Payments } from '../pages/Payments/Payments';
 import { Invoices } from '../pages/Invoices/Invoices';
 import { Taxes } from '../pages/Taxes/Taxes';
+import { CategoryList } from '../pages/Products/pages/CategoryList';
+import { CategoryFormPage } from '../pages/Products/pages/CategoryFormPage';
 import { ProductList } from '../pages/Products/ProductList';
-import { ProductRoutePlaceholder } from '../pages/Products/ProductRoutePlaceholder';
+import { ProductDetails } from '../pages/Products/pages/ProductDetails';
 import { CreateProduct } from '../pages/Products/pages/CreateProduct';
 import { EditProduct } from '../pages/Products/pages/EditProduct';
 
@@ -86,8 +88,11 @@ export const AppRoutes = () => (
 
       {/* Other Modules */}
       <Route path="/products" element={<ProductList />} />
+      <Route path="/products/categories" element={<CategoryList />} />
+      <Route path="/products/categories/new" element={<CategoryFormPage />} />
+      <Route path="/products/categories/:categoryId/edit" element={<CategoryFormPage />} />
       <Route path="/products/new" element={<CreateProduct />} />
-      <Route path="/products/:id" element={<ProductRoutePlaceholder mode="view" />} />
+      <Route path="/products/:id" element={<ProductDetails />} />
       <Route path="/products/:id/edit" element={<EditProduct />} />
       <Route path="/credit-notes" element={<ModulePlaceholder />} />
       <Route path="/recurring-billing" element={<ModulePlaceholder />} />

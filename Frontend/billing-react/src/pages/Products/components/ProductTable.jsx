@@ -18,7 +18,7 @@ export function ProductTable({ items, loading, error, params, onSort, filtered, 
         {sortable ? <TableSortLabel active={params.sortBy === key} direction={params.sortBy === key ? params.sortOrder : 'asc'} onClick={() => onSort(key)}>{label}</TableSortLabel> : label}
       </TableCell>)}</TableRow></TableHead>
       <TableBody>{loading ? Array.from({ length: 7 }, (_, row) => <TableRow key={row}>{columns.map(([key]) => <TableCell key={key}><Skeleton height={28} /></TableCell>)}</TableRow>)
-        : error ? <TableRow><TableCell colSpan={9}><ProductErrorState onRetry={onRetry} /></TableCell></TableRow>
+        : error ? <TableRow><TableCell colSpan={9}><ProductErrorState message={error?.message} onRetry={onRetry} /></TableCell></TableRow>
         : !items.length ? <TableRow><TableCell colSpan={9}><ProductEmptyState filtered={filtered} onClear={onClear} /></TableCell></TableRow>
         : items.map(product => <TableRow hover key={product.id}>
           <TableCell><span className="product-code">{product.productCode}</span></TableCell>

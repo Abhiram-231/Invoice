@@ -1100,7 +1100,7 @@ export const Login = () => {
                     }
                     label={
                       <span className="billing-auth-remember-label">
-                        Remember me for 30 days
+                        Remember me 
                       </span>
                     }
                     sx={{

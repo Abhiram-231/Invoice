@@ -222,3 +222,16 @@
   .customers-page .customer-table .MuiTableCell-body:last-child::before { display: none; }
   .customers-page .customer-row-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; }
 }
+
+/* Match the Products pagination layout while retaining Customer page sizes. */
+.customers-page .customer-pagination { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-start; gap: 20px; padding: 22px; background: #fffbf5; border-top: 1px solid #eee6e1; }
+.customers-page .customer-pagination > span { margin-right: auto; font-size: 12px; color: #756763; }
+.customers-page .customer-pagination > .MuiTextField-root { display: inline-flex; flex-direction: column; align-items: stretch; gap: 0; width: 115px; }
+.customers-page .customer-pagination .MuiInputBase-root { font-size: 1rem; }
+.customers-page .customer-pagination .MuiSelect-select { padding-top: 8.5px; padding-bottom: 8.5px; }
+.customers-page .customer-pagination .Mui-selected { background-color: #4a2c2a; color: white; }
+@media (max-width: 600px) {
+  .customers-page .customer-pagination { gap: 18px 12px; padding: 20px 12px; }
+  .customers-page .customer-pagination nav { width: 100%; }
+  .customers-page .customer-pagination .MuiPagination-ul { justify-content: center; }
+}

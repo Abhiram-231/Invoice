@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Button, CircularProgress, Switch } from '@mui/material';
+import { Alert, Button, CircularProgress, Switch } from '@mui/material';
 import {
   Inventory2Outlined,
   ReceiptLongOutlined,
@@ -18,16 +18,7 @@ import {
   STANDARD_UNITS,
 } from '../validation/productValidation';
 import '../styles/product-form.css';
-
-const DEFAULT_CATEGORIES = [
-  'Consulting',
-  'Electronics',
-  'IT Services',
-  'Maintenance',
-  'Office Supplies',
-  'Software',
-  'Subscription',
-];
+import { useCategories, categoryError } from '../services/categoryService';
 
 const getCurrencySymbol = (currency) => {
   switch (currency) {
@@ -50,8 +41,10 @@ export function ProductForm({
   submitError = '',
   onCancel,
   mode = 'create',
-  categories = DEFAULT_CATEGORIES,
 }) {
+  const [customDiscount, setCustomDiscount] = useState('');
+  const categoriesQuery = useCategories();
+  const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
     if (!values) return DEFAULT_PRODUCT_VALUES;
     return {
@@ -59,7 +52,7 @@ export function ProductForm({
       name: values.name || '',
       description: values.description || '',
       type: values.type || 'Product',
-      category: values.category || '',
+      categoryId: values.categoryId == null ? '' : String(values.categoryId),
       unit: values.unit || 'Piece',
       price: values.price !== undefined && values.price !== null ? values.price : '',
       currency: values.currency || 'INR',
@@ -76,6 +69,7 @@ export function ProductForm({
     control,
     watch,
     reset,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -87,25 +81,41 @@ export function ProductForm({
   useEffect(() => {
     if (initialValues) {
       reset(getSanitizedInitialValues(initialValues));
+      setCustomDiscount('');
     }
   }, [initialValues, reset]);
 
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
+  const discountAllowed = watch('discountAllowed');
+  const unitPrice = Number(watch('price'));
+  const discountPercent = Number(customDiscount);
+  const discountError = customDiscount !== '' && (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100)
+    ? 'Enter a discount between 0 and 100%.' : '';
+  const discountPreview = customDiscount !== '' && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
+    ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: selectedCurrency }).format(unitPrice * (1 - discountPercent / 100)) : null;
 
-  // Merge unique categories
-  const categoryOptions = Array.from(
-    new Set([...(categories || []), initialValues?.category].filter(Boolean))
-  ).sort();
+  const currentCategoryId = initialValues?.categoryId;
+  const categoryOptions = categories.filter(category => category.status === 'Active' || (mode === 'edit' && String(category.id) === String(currentCategoryId)));
+  if (mode === 'edit' && currentCategoryId != null && !categoryOptions.some(category => String(category.id) === String(currentCategoryId))) {
+    categoryOptions.push({ id: currentCategoryId, name: initialValues.category || `Category ${currentCategoryId}`, status: 'Inactive' });
+  }
 
   const handleValidSubmit = (data) => {
-    if (isSubmitting) return;
+    if (isSubmitting || categoriesQuery.isPending || categoriesQuery.isError) return;
+    const selected = categoryOptions.find(category => String(category.id) === String(data.categoryId));
+    if (!selected || (selected.status !== 'Active' && !(mode === 'edit' && String(selected.id) === String(currentCategoryId)))) {
+      setError('categoryId', { message: 'Select an active category.' });
+      return;
+    }
     const payload = {
       ...data,
+      ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
       productCode: data.productCode?.trim(),
       name: data.name?.trim(),
       description: data.description?.trim() || '',
-      category: data.category?.trim(),
+      categoryId: Number(data.categoryId),
+      category: selected.name,
       unit: data.unit?.trim(),
       price: Number(data.price) || 0,
       currency: data.currency || 'INR',
@@ -119,6 +129,9 @@ export function ProductForm({
 
   return (
     <div className="product-form-container">
+      {categoriesQuery.isPending && <Alert severity="info">Loading categories...</Alert>}
+      {categoriesQuery.isError && <Alert severity="error" action={<Button onClick={() => categoriesQuery.refetch()}>Retry</Button>}>{categoryError(categoriesQuery.error)}</Alert>}
+      {!categoriesQuery.isPending && !categoriesQuery.isError && !categoryOptions.length && <Alert severity="info">No active categories are available. Activate or add a category before saving a product.</Alert>}
       {submitError && (
         <div className="product-alert product-alert-error" role="alert">
           <span>⚠️ {submitError}</span>
@@ -213,22 +226,23 @@ export function ProductForm({
                 Category <span className="product-field-required">*</span>
               </label>
               <select
+                disabled={categoriesQuery.isPending || categoriesQuery.isError}
                 id="productCategory"
-                className={`product-select ${errors.category ? 'has-error' : ''}`}
-                aria-invalid={Boolean(errors.category)}
-                aria-describedby={errors.category ? 'productCategory-err' : undefined}
-                {...register('category')}
+                className={`product-select ${errors.categoryId ? 'has-error' : ''}`}
+                aria-invalid={Boolean(errors.categoryId)}
+                aria-describedby={errors.categoryId ? 'productCategory-err' : undefined}
+                {...register('categoryId')}
               >
                 <option value="">Select Category</option>
                 {categoryOptions.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
+                  <option key={cat.id} value={String(cat.id)} disabled={cat.status !== 'Active'}>
+                    {cat.name}{cat.status !== 'Active' ? ' (Inactive)' : ''}
                   </option>
                 ))}
               </select>
-              {errors.category && (
+              {errors.categoryId && (
                 <span id="productCategory-err" className="product-field-error" role="alert">
-                  {errors.category.message}
+                  {errors.categoryId.message}
                 </span>
               )}
             </div>
@@ -411,8 +425,8 @@ export function ProductForm({
             <div className="product-form-field">
               <div className="product-switch-field">
                 <div className="product-switch-info">
-                  <span className="product-switch-title">Discount Allowed</span>
-                  <span className="product-switch-desc">
+                  <label htmlFor="productDiscountAllowed" className="product-switch-title">Discount Allowed</label>
+                  <span id="product-discount-description" className="product-switch-desc">
                     Permit discounts on this item during invoice creation
                   </span>
                 </div>
@@ -421,13 +435,32 @@ export function ProductForm({
                   control={control}
                   render={({ field }) => (
                     <Switch
+                      id="productDiscountAllowed"
+                      className="product-discount-switch"
+                      name={field.name}
+                      inputRef={field.ref}
+                      onBlur={field.onBlur}
+                      disabled={isSubmitting}
+                      inputProps={{ 'aria-describedby': 'product-discount-description' }}
                       checked={Boolean(field.value)}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(e) => { field.onChange(e.target.checked); if (!e.target.checked) setCustomDiscount(''); }}
                       color="primary"
                     />
                   )}
                 />
               </div>
+              {discountAllowed && <div className="product-custom-discount">
+                <label htmlFor="productCustomDiscount" className="product-field-label">Custom Discount (%) <span className="product-discount-preview-label">Preview</span></label>
+                <input id="productCustomDiscount" type="number" min="0" max="100" step="any" inputMode="decimal"
+                  className={`product-input ${discountError ? 'has-error' : ''}`} placeholder="e.g. 10" value={customDiscount}
+                  disabled={isSubmitting} onChange={event => setCustomDiscount(event.target.value)}
+                  aria-invalid={Boolean(discountError)} aria-describedby="product-discount-note product-discount-feedback" />
+                <span id="product-discount-note" className="product-switch-desc">Preview only. Set the final discount during invoice creation; this percentage is not saved with the product.</span>
+                <div id="product-discount-feedback" aria-live="polite">
+                  {discountError ? <span className="product-field-error">{discountError}</span>
+                    : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}
+                </div>
+              </div>}
             </div>
 
             {/* Status */}
@@ -468,7 +501,7 @@ export function ProductForm({
           <Button
             type="submit"
             variant="contained"
-            disabled={isSubmitting}
+            disabled={isSubmitting || categoriesQuery.isPending || categoriesQuery.isError}
             className="product-btn-submit"
             startIcon={
               isSubmitting ? (

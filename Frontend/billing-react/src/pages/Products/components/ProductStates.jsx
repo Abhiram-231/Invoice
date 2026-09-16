@@ -1,9 +1,11 @@
 import { Button } from '@mui/material';
-import { Inventory2Outlined, ErrorOutline } from '@mui/icons-material';
+import { Inventory2Outlined } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { DashboardErrorState } from '../../../components/dashboard/DashboardStates';
+import '../../../styles/Dashboard.css';
 
-export function ProductErrorState({ onRetry }) {
-  return <div className="product-state" role="alert"><ErrorOutline /><h2>Unable to load products</h2><p>Something went wrong while loading the product catalog.</p><Button variant="outlined" onClick={onRetry}>Try Again</Button></div>;
+export function ProductErrorState({ onRetry, message }) {
+  return <DashboardErrorState title="Unable to load products" message={message} onRetry={onRetry} />;
 }
 
 export function ProductEmptyState({ filtered, onClear }) {
