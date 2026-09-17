@@ -11,7 +11,7 @@ export function normalizeProduct(raw) {
     type: raw.type || 'Product',
     status: typeof raw.isActive === 'boolean' ? (raw.isActive ? 'Active' : 'Inactive') : raw.status || 'Unknown',
     hsnSac: raw.hsnSacCode ?? raw.hsnSac ?? '',
-    discountPercentage: raw.discountPercentage ?? '',
+    discountPercentage: raw.discountPercent ?? raw.DiscountPercent ?? raw.discountPercentage ?? '',
   };
 }
 
@@ -28,9 +28,9 @@ const productPayload = data => {
   const categoryId = Number(data.categoryId);
   if (!Number.isInteger(categoryId) || categoryId <= 0) throw new Error('Select a valid category.');
   // Product PUT documents rowVersion; preserve it from GET while sending only writable fields.
-  const payload = Object.fromEntries(['productCode', 'name', 'description', 'type', 'unit', 'price', 'currency', 'taxCategory', 'category', 'discountAllowed', 'discountPercentage', 'status', 'rowVersion']
+  const payload = Object.fromEntries(['productCode', 'name', 'description', 'type', 'unit', 'price', 'currency', 'taxCategory', 'category', 'discountAllowed', 'status', 'rowVersion']
     .filter(key => data[key] !== undefined).map(key => [key, data[key]]));
-  return { ...payload, categoryId, hsnSacCode: (data.hsnSac ?? data.hsnSacCode ?? '').trim() };
+  return { ...payload, categoryId, discountPercent: data.discountPercentage ?? data.discountPercent, hsnSacCode: (data.hsnSac ?? data.hsnSacCode ?? '').trim() };
 };
 
 export const productApiService = {

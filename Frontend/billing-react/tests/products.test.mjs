@@ -38,7 +38,7 @@ test('create and update send HSN/SAC and discount, and reload restores both', as
   try {
     await productApiService.createProduct(valid);
     assert.equal(stored.hsnSacCode, '08471301');
-    assert.equal(stored.discountPercentage, 10);
+    assert.equal(stored.discountPercent, 10);
     await productApiService.updateProduct(1, { ...valid, hsnSac: '998313', discountPercentage: 15, rowVersion: 'version' });
     const result = normalizeProduct(stored);
     assert.equal(result.hsnSac, '998313');
@@ -46,9 +46,20 @@ test('create and update send HSN/SAC and discount, and reload restores both', as
     assert.equal(result.rowVersion, 'version');
     await productApiService.updateProduct(1, { ...valid, hsnSac: '', discountPercentage: 0 });
     assert.equal(stored.hsnSacCode, '');
-    assert.equal(stored.discountPercentage, 0);
+    assert.equal(stored.discountPercent, 0);
   } finally {
     productApi.createProduct = originalCreate;
     productApi.updateProduct = originalUpdate;
   }
+});
+
+
+test('normalizes backend discount names and preserves zero', () => {
+  for (const field of ['discountPercent', 'DiscountPercent', 'discountPercentage']) {
+    for (const value of [0, 12.5, 100]) {
+      assert.equal(normalizeProduct({ id: 1, [field]: value }).discountPercentage, value);
+    }
+  }
+  assert.equal(normalizeProduct({ id: 1 }).discountPercentage, '');
+  assert.equal(normalizeProduct({ id: 1, discountPercent: 0, discountPercentage: 20 }).discountPercentage, 0);
 });

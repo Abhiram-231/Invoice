@@ -57,7 +57,7 @@ export function ProductForm({
       currency: values.currency || 'INR',
       taxCategory: values.taxCategory || 'GST 18%',
       hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
-      discountPercentage: values.discountPercentage ?? '',
+      discountPercentage: values.discountPercentage ?? values.discountPercent ?? values.DiscountPercent ?? '',
       discountAllowed: values.discountAllowed !== false,
       status: values.status || 'Active',
     };
