@@ -8,8 +8,8 @@
 .product-page .MuiButton-containedPrimary { background-color: #4a2c2a; color: white; }
 .product-page .MuiButton-containedPrimary:hover { background-color: #5d4037; }
 .product-heading .MuiButton-root { white-space: nowrap; padding: 10px 20px; }
-.product-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; margin-bottom: 24px; }
-.product-summary-card { display: flex; align-items: flex-start; gap: 14px; border: 1px solid #ecdcc4; background: #fff3df; border-radius: 14px; padding: 22px 18px; box-shadow: 0 4px 14px #69513908; border-top: 3px solid #d9b67f; }
+.product-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 20px; }
+.product-summary-card { display: flex; align-items: flex-start; gap: 10px; border: 1px solid #ecdcc4; background: #fff3df; border-radius: 12px; padding: 14px 16px; box-shadow: 0 4px 14px #69513908; border-top: 3px solid #d9b67f; }
 .product-summary-card.tone-active { background: #edf7ef; border-color: #d4e7d8; border-top-color: #9ac5a5; }
 .product-summary-card.tone-inactive { background: #fff0ed; border-color: #f0d9d2; border-top-color: #dfb1a5; }
 .product-summary-card.tone-services { background: #f1effb; border-color: #e1dbf0; border-top-color: #b9acd9; }
@@ -20,10 +20,12 @@
 .product-summary-card.tone-active strong { color: #386449; }
 .product-summary-card.tone-inactive strong { color: #8b5145; }
 .product-summary-card.tone-services strong { color: #665184; }
-.product-summary-card small { display: block; color: #756763; font-size: 11px; margin-top: 5px; line-height: 1.5; }
-.product-summary-icon { display: grid; place-items: center; background: #f5e5c9; color: #70522d; border-radius: 12px; width: 42px; height: 42px; flex-shrink: 0; }
+.product-summary-card small { display: block; color: #756763; font-size: 11px; margin-top: 3px; line-height: 1.4; }
+.product-summary-icon { display: grid; place-items: center; background: #f5e5c9; color: #70522d; border-radius: 9px; width: 34px; height: 34px; flex-shrink: 0; }
+.product-summary-icon svg { font-size: 20px; }
+.product-summary-card > div { min-width: 0; overflow-wrap: anywhere; }
 .product-summary-card div > span { color: #756763; font-size: 12px; }
-.product-summary-card strong { display: block; font-size: 30px; letter-spacing: -.8px; line-height: 1.3; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.product-summary-card strong { display: block; font-size: 24px; letter-spacing: -.5px; line-height: 1.25; margin-top: 3px; font-variant-numeric: tabular-nums; }
 .product-panel { background: #fffefd; border: 1px solid #eee2d2; border-radius: 14px; overflow: hidden; box-shadow: 0 6px 22px #69513907; }
 .product-panel-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 22px; border-bottom: 1px solid #f0e9e4; }
 .product-panel-title { display: flex; align-items: center; gap: 12px; min-width: 0; }
@@ -74,6 +76,15 @@
 .product-page :focus-visible { outline: 2px solid #8d6e63; outline-offset: 3px; }
 .product-page .product-search .MuiOutlinedInput-root.Mui-focused .MuiOutlinedInput-notchedOutline { border-color: #eadfd2; border-width: 1px; }
 .product-page .product-search .MuiOutlinedInput-input:focus-visible { outline: none; }
-@media (max-width: 1100px) { .product-filters { grid-template-columns: 1fr 1fr; } .product-summary { gap: 10px; } .product-summary-card { padding: 14px 10px; gap: 8px; } }
+@media (max-width: 1100px) { .product-filters { grid-template-columns: 1fr 1fr; } .product-summary { gap: 10px; } .product-summary-card { padding: 12px 10px; gap: 8px; } }
 @media (max-width: 600px) { .product-page { padding: 20px 12px; } .product-heading { align-items: flex-start; flex-direction: column; } .product-summary { grid-template-columns: 1fr 1fr; } .product-summary-card { flex-direction: column; } .product-filters { grid-template-columns: 1fr; padding: 20px 14px; } .product-panel-heading { padding: 18px 14px; flex-wrap: wrap; } .product-pagination { gap: 18px 12px; padding: 20px 12px; } .product-pagination nav { width: 100%; } .product-pagination .MuiPagination-ul { justify-content: center; } }
 @media (prefers-reduced-motion: reduce) { .product-page *, .product-page *::before, .product-page *::after { transition: none !important; } }
+
+/* Keep summary and list edges aligned at the same compact desktop width. */
+@media (min-width: 1101px) {
+  .product-page:not(.product-list-page) .product-panel {
+    width: 96%;
+    margin-inline: auto;
+    box-sizing: border-box;
+  }
+}

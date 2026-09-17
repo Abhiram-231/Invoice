@@ -4,7 +4,7 @@ import { productValidationSchema, DEFAULT_PRODUCT_VALUES } from '../src/pages/Pr
 import { productApiService, normalizeProduct } from '../src/pages/Products/services/productService.js';
 import { productApi } from '../../billing-api-client/productApi.js';
 
-const valid = { ...DEFAULT_PRODUCT_VALUES, productCode: 'PRD-001', name: 'Keyboard', categoryId: '1', price: 100, hsnSac: '08471301', discountPercentage: 10 };
+const valid = { ...DEFAULT_PRODUCT_VALUES, productCode: 'PRD-001', name: 'Keyboard', categoryId: '1', price: 100, hsnSac: '08471301', discountPercentage: 10, discountAllowed: true };
 
 test('validates product and service codes without losing leading zeros', () => {
   for (const type of ['Product', 'Service']) {
@@ -15,8 +15,8 @@ test('validates product and service codes without losing leading zeros', () => {
   assert.throws(() => productValidationSchema.validateSync({ ...valid, hsnSac: '12' }), /HSN\/SAC/);
 });
 
-test('discount is mandatory, including when discounts are disabled', () => {
-  for (const discountAllowed of [true, false]) {
+test('discount is mandatory only when enabled', () => {
+  for (const discountAllowed of [true]) {
     for (const discountPercentage of ['', ' ', null, undefined]) {
       assert.throws(() => productValidationSchema.validateSync({ ...valid, discountAllowed, discountPercentage }), /Discount is required/);
     }
@@ -62,4 +62,14 @@ test('normalizes backend discount names and preserves zero', () => {
   }
   assert.equal(normalizeProduct({ id: 1 }).discountPercentage, '');
   assert.equal(normalizeProduct({ id: 1, discountPercent: 0, discountPercentage: 20 }).discountPercentage, 0);
+});
+
+
+test('disabled discounts default to zero and ignore hidden stale values', () => {
+  assert.equal(DEFAULT_PRODUCT_VALUES.discountAllowed, false);
+  assert.equal(DEFAULT_PRODUCT_VALUES.discountPercentage, 0);
+  for (const discountPercentage of [undefined, null, '', 25, -1, 'invalid']) {
+    const result = productValidationSchema.validateSync({ ...valid, discountAllowed: false, discountPercentage });
+    assert.equal(result.discountPercentage, 0);
+  }
 });

@@ -78,18 +78,21 @@ export const productValidationSchema = yup.object({
     .nullable()
     .transform((curr, orig) => (orig === '' ? null : curr)),
 
-  discountPercentage: yup
-    .number()
-    .transform((value, original) => typeof original === 'string' && original.trim() === '' ? undefined : value)
-    .typeError('Discount must be a valid number')
-    .required('Discount is required (enter 0 for no discount)')
-    .min(0, 'Discount must be between 0 and 100%')
-    .max(100, 'Discount must be between 0 and 100%'),
+  discountPercentage: yup.number().when('discountAllowed', {
+    is: true,
+    then: schema => schema
+      .transform((value, original) => typeof original === 'string' && original.trim() === '' ? undefined : value)
+      .typeError('Discount must be a valid number')
+      .required('Discount is required (enter 0 for no discount)')
+      .min(0, 'Discount must be between 0 and 100%')
+      .max(100, 'Discount must be between 0 and 100%'),
+    otherwise: schema => schema.transform(() => 0).default(0),
+  }),
 
   // 3. Settings
   discountAllowed: yup
     .boolean()
-    .default(true),
+    .default(false),
 
   status: yup
     .string()
@@ -108,7 +111,7 @@ export const DEFAULT_PRODUCT_VALUES = {
   currency: 'INR',
   taxCategory: 'GST 18%',
   hsnSac: '',
-  discountPercentage: '',
-  discountAllowed: true,
+  discountPercentage: 0,
+  discountAllowed: false,
   status: 'Active',
 };

@@ -1,0 +1,505 @@
+{
+  "scripts": 115,
+  "styles": 17,
+  "unresolved": [],
+  "markers": [],
+  "cssDuplicates": [
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-base.css",
+      "selector": ".cust-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-base.css",
+      "selector": ".cust-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-details.css",
+      "selector": ".customer-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-details.css",
+      "selector": ".customer-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-details.css",
+      "selector": ".customer-page h1",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-details.css",
+      "selector": ".customer-page h2",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-details.css",
+      "selector": ".customer-page p",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customers-heading h1",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-panel",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.green",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.gray",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.orange",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table .MuiTableCell-head",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customers-heading h1",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table .MuiTableCell-head",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table .MuiTableCell-body",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .MuiOutlinedInput-root",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .MuiOutlinedInput-notchedOutline",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .MuiButton-containedPrimary:hover",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .MuiButton-containedPrimary.Mui-disabled",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.green",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.gray",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat.orange",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table tbody",
+      "context": "@media(max-width:600px) ",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table .MuiTableRow-root",
+      "context": "@media(max-width:600px) ",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-table .MuiTableCell-head",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-identity a",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customers-heading h1",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-stat-top",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-panel-heading h2",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-panel",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-pagination",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\pages\\Customers\\styles\\customer-list.css",
+      "selector": ".customers-page .customer-pagination .Mui-selected",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-card-heading select",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-search",
+      "context": "@media (max-width: 760px) ",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-sidebar",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-sidebar-brand",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-nav-item",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-nav-item:hover",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-nav-item.active",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-nav-section > small",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-sidebar-footer",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-section-title",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-section-title h2",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-section-title button",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-badge",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-customer-avatar",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-activity",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-activity > span",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-tone-sand",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-tone-mint",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-tone-cream",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-tone-rose",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-tone-lavender",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-user-copy",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-avatar",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-user-copy span",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-main",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-table-card table",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-table-card td",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Dashboard.css",
+      "selector": ".bd-refresh",
+      "context": "@media (max-width: 760px) ",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    },
+    {
+      "file": "billing-react\\src\\styles\\Login.css",
+      "selector": ".billing-auth-card.register-card",
+      "context": "root",
+      "classification": "NEEDS TEAM CONFIRMATION",
+      "decision": "Retained: repeated selectors alone do not prove identical computed styles; theme and responsive cascades require visual comparison."
+    }
+  ]
+}

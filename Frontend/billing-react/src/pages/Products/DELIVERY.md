@@ -1,3 +1,5 @@
+> Current status (2026-09-17): Product list, create, details, edit and category routes use real API adapters. The old placeholder and mock dataset have been removed after reference checks. `productService.js`, `categoryService.js` and `AppRoutes.jsx` define current integration. Discount is opt-in, defaults to zero when disabled, and saves through the existing discountPercent API field. The material below is historical delivery documentation, not current acceptance status; embedded mock/placeholder examples are obsolete.
+
 # Products & Services — frontend delivery
 
 Implemented IBMSFE-001 through IBMSFE-004 under `src/pages/Products`, using the existing Material UI dependencies, React Query provider, dashboard layout and Products & Services sidebar link.

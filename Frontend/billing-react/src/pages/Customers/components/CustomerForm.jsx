@@ -14,7 +14,6 @@ import {
   PersonOutline,
   LocalOfferOutlined,
   BusinessOutlined,
-  GroupsOutlined,
   EmailOutlined,
   PhoneOutlined,
   LanguageOutlined,

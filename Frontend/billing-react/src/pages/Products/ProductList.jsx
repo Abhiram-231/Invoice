@@ -9,6 +9,7 @@ import { ProductTable } from './components/ProductTable';
 import { ProductPagination } from './components/ProductPagination';
 import { ProductSummaryCards } from './components/ProductSummaryCards';
 import './styles/products.css';
+import './styles/product-list.css';
 import { useCategories, categoryError } from './services/categoryService';
 
 const initialParams = { search: '', category: '', status: '', pageNumber: 1, pageSize: 10, sortBy: 'productCode', sortOrder: 'asc' };
@@ -32,7 +33,7 @@ export function ProductList() {
   const updating = search.trim() !== params.search || query.isFetching;
   const error = query.error || catalog.error;
 
-  return <main className="product-page">
+  return <main className="product-page product-list-page">
     <Breadcrumbs aria-label="Breadcrumb"><span>Products &amp; Services</span><span>Product List</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button></div></header>
     {categoriesQuery.isError && <Alert severity="error" action={<Button onClick={() => categoriesQuery.refetch()}>Retry</Button>}>{categoryError(categoriesQuery.error)}</Alert>}

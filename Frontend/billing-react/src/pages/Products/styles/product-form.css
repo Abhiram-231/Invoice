@@ -170,6 +170,7 @@
 
 /* Segmented / Toggle styles for Settings */
 .product-switch-field {
+  gap: 16px; min-height: 72px; box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -180,18 +181,21 @@
 }
 
 .product-switch-info {
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
 .product-switch-title {
+  cursor: pointer;
   font-size: 13px;
   font-weight: 600;
   color: #4a2c2a;
 }
 
 .product-switch-desc {
+  line-height: 1.5;
   font-size: 11.5px;
   color: #756763;
 }
@@ -287,10 +291,6 @@
 }
 
 /* Keep the discount control aligned and give its thumb a smooth, short travel. */
-.product-switch-field { gap: 16px; min-height: 72px; box-sizing: border-box; }
-.product-switch-info { min-width: 0; }
-.product-switch-title { cursor: pointer; }
-.product-switch-desc { line-height: 1.5; }
 .product-discount-switch.MuiSwitch-root { width: 48px; height: 28px; padding: 0; flex-shrink: 0; overflow: visible; }
 .product-discount-switch .MuiSwitch-switchBase { padding: 3px; color: #fff; transition: transform 200ms ease, color 200ms ease; }
 .product-discount-switch .MuiSwitch-thumb { width: 22px; height: 22px; box-shadow: 0 1px 4px #2f252330; }

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { Alert, Button, CircularProgress, Switch } from '@mui/material';
+import { Alert, Button, CircularProgress, Collapse, Switch, useMediaQuery } from '@mui/material';
 import {
   Inventory2Outlined,
   ReceiptLongOutlined,
@@ -42,6 +42,7 @@ export function ProductForm({
   onCancel,
   mode = 'create',
 }) {
+  const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
@@ -70,6 +71,7 @@ export function ProductForm({
     watch,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -87,6 +89,7 @@ export function ProductForm({
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
   const unitPrice = Number(watch('price'));
+  const discountAllowed = watch('discountAllowed');
   const customDiscount = watch('discountPercentage');
   const discountPercent = Number(customDiscount);
   const discountError = errors.discountPercentage?.message || '';
@@ -120,7 +123,7 @@ export function ProductForm({
       taxCategory: data.taxCategory || 'GST 18%',
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
-      discountPercentage: Number(data.discountPercentage),
+      discountPercentage: data.discountAllowed ? Number(data.discountPercentage) : 0,
       status: data.status || 'Active',
     };
     onSubmit(payload);
@@ -442,24 +445,29 @@ export function ProductForm({
                       disabled={isSubmitting}
                       inputProps={{ 'aria-describedby': 'product-discount-description' }}
                       checked={Boolean(field.value)}
-                      onChange={(e) => field.onChange(e.target.checked)}
+                      onChange={(e) => {
+                        field.onChange(e.target.checked);
+                        if (!e.target.checked) setValue('discountPercentage', 0, { shouldValidate: true, shouldDirty: true });
+                      }}
                       color="primary"
                     />
                   )}
                 />
               </div>
-              {<div className="product-custom-discount">
+              <Collapse in={Boolean(discountAllowed)} timeout={reduceMotion ? 0 : 220} unmountOnExit>
+              <div className="product-custom-discount">
                 <label htmlFor="productCustomDiscount" className="product-field-label">Discount (%) <span className="product-field-required">*</span></label>
                 <input id="productCustomDiscount" type="number" min="0" max="100" step="any" inputMode="decimal"
                   className={`product-input ${discountError ? 'has-error' : ''}`} placeholder="e.g. 10"
-                  disabled={isSubmitting} required aria-required="true" {...register('discountPercentage')}
+                  disabled={isSubmitting || !discountAllowed} required aria-required="true" {...register('discountPercentage')}
                   aria-invalid={Boolean(discountError)} aria-describedby="product-discount-note product-discount-feedback" />
                 <span id="product-discount-note" className="product-switch-desc">Enter 0 if there is no discount. This percentage is saved with the product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
                     : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}
                 </div>
-              </div>}
+              </div>
+              </Collapse>
             </div>
 
             {/* Status */}

@@ -1,0 +1,10 @@
+# Generated frontend output; preserve local dependencies and builds.
+node_modules/
+dist/
+.vite/
+*.log
+
+# Local configuration; commit only the safe example.
+.env
+.env.*
+!.env.example

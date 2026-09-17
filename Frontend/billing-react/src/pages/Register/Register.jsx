@@ -22,7 +22,6 @@ import {
   LockOutlined,
   Visibility,
   VisibilityOff,
-  Check,
 } from '@mui/icons-material';
 import { authApi } from 'billing-api-client';
 import '../../styles/Login.css';
