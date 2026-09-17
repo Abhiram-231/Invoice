@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Alert, Button, CircularProgress, Switch } from '@mui/material';
@@ -42,7 +42,6 @@ export function ProductForm({
   onCancel,
   mode = 'create',
 }) {
-  const [customDiscount, setCustomDiscount] = useState('');
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
@@ -57,7 +56,8 @@ export function ProductForm({
       price: values.price !== undefined && values.price !== null ? values.price : '',
       currency: values.currency || 'INR',
       taxCategory: values.taxCategory || 'GST 18%',
-      hsnSac: values.hsnSac || '',
+      hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
+      discountPercentage: values.discountPercentage ?? '',
       discountAllowed: values.discountAllowed !== false,
       status: values.status || 'Active',
     };
@@ -81,18 +81,16 @@ export function ProductForm({
   useEffect(() => {
     if (initialValues) {
       reset(getSanitizedInitialValues(initialValues));
-      setCustomDiscount('');
     }
   }, [initialValues, reset]);
 
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
-  const discountAllowed = watch('discountAllowed');
   const unitPrice = Number(watch('price'));
+  const customDiscount = watch('discountPercentage');
   const discountPercent = Number(customDiscount);
-  const discountError = customDiscount !== '' && (!Number.isFinite(discountPercent) || discountPercent < 0 || discountPercent > 100)
-    ? 'Enter a discount between 0 and 100%.' : '';
-  const discountPreview = customDiscount !== '' && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
+  const discountError = errors.discountPercentage?.message || '';
+  const discountPreview = customDiscount !== '' && customDiscount != null && discountPercent >= 0 && discountPercent <= 100 && !discountError && Number.isFinite(unitPrice) && unitPrice >= 0
     ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: selectedCurrency }).format(unitPrice * (1 - discountPercent / 100)) : null;
 
   const currentCategoryId = initialValues?.categoryId;
@@ -122,6 +120,7 @@ export function ProductForm({
       taxCategory: data.taxCategory || 'GST 18%',
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
+      discountPercentage: Number(data.discountPercentage),
       status: data.status || 'Active',
     };
     onSubmit(payload);
@@ -443,19 +442,19 @@ export function ProductForm({
                       disabled={isSubmitting}
                       inputProps={{ 'aria-describedby': 'product-discount-description' }}
                       checked={Boolean(field.value)}
-                      onChange={(e) => { field.onChange(e.target.checked); if (!e.target.checked) setCustomDiscount(''); }}
+                      onChange={(e) => field.onChange(e.target.checked)}
                       color="primary"
                     />
                   )}
                 />
               </div>
-              {discountAllowed && <div className="product-custom-discount">
-                <label htmlFor="productCustomDiscount" className="product-field-label">Custom Discount (%) <span className="product-discount-preview-label">Preview</span></label>
+              {<div className="product-custom-discount">
+                <label htmlFor="productCustomDiscount" className="product-field-label">Discount (%) <span className="product-field-required">*</span></label>
                 <input id="productCustomDiscount" type="number" min="0" max="100" step="any" inputMode="decimal"
-                  className={`product-input ${discountError ? 'has-error' : ''}`} placeholder="e.g. 10" value={customDiscount}
-                  disabled={isSubmitting} onChange={event => setCustomDiscount(event.target.value)}
+                  className={`product-input ${discountError ? 'has-error' : ''}`} placeholder="e.g. 10"
+                  disabled={isSubmitting} required aria-required="true" {...register('discountPercentage')}
                   aria-invalid={Boolean(discountError)} aria-describedby="product-discount-note product-discount-feedback" />
-                <span id="product-discount-note" className="product-switch-desc">Preview only. Set the final discount during invoice creation; this percentage is not saved with the product.</span>
+                <span id="product-discount-note" className="product-switch-desc">Enter 0 if there is no discount. This percentage is saved with the product.</span>
                 <div id="product-discount-feedback" aria-live="polite">
                   {discountError ? <span className="product-field-error">{discountError}</span>
                     : discountPreview && <span className="product-discount-total">Price after discount: <strong>{discountPreview}</strong> <span>(before tax)</span></span>}

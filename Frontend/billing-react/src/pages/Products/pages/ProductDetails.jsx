@@ -19,6 +19,7 @@ export function ProductDetails() {
     ['Category', categoryName || (product.categoryId ? `Category ${product.categoryId}` : 'Not assigned')],
     ['Unit', product.unit], ['Unit Price', `${product.currency || 'INR'} ${Number(product.price).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`],
     ['Tax Category', product.taxCategory], ['HSN / SAC Code', product.hsnSac],
+    ['Discount (%)', product.discountPercentage === '' ? 'Not set' : `${product.discountPercentage}%`],
     ['Discount Allowed', product.discountAllowed ? 'Yes' : 'No'], ['Status', product.status],
   ] : [];
   return <main className="product-page">
