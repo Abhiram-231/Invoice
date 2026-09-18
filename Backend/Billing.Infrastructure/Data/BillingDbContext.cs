@@ -26,6 +26,8 @@ public class BillingDbContext : DbContext
 
     public DbSet<Product> Products { get; set; }
 
+    public DbSet<DiscountRule> DiscountRules { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -253,6 +255,32 @@ public class BillingDbContext : DbContext
             entity.HasIndex(p => new { p.TenantId, p.CategoryId });
             entity.HasIndex(p => new { p.TenantId, p.Status });
             entity.HasIndex(p => p.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<DiscountRule>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.Code).HasMaxLength(64).IsRequired();
+            entity.Property(d => d.Name).HasMaxLength(128).IsRequired();
+            entity.Property(d => d.Description).HasMaxLength(500);
+            entity.Property(d => d.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(d => d.Scope).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(d => d.Value).HasPrecision(18, 2);
+            entity.Property(d => d.MinInvoiceAmount).HasPrecision(18, 2);
+            entity.Property(d => d.MaxDiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(d => d.IsActive);
+            entity.Property(d => d.ApplicableRole).HasMaxLength(64);
+            entity.Property(d => d.RowVersion).IsRowVersion();
+
+            entity.HasOne(d => d.Tenant)
+                  .WithMany()
+                  .HasForeignKey(d => d.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(d => new { d.TenantId, d.Code }).IsUnique();
+            entity.HasIndex(d => new { d.TenantId, d.Status });
+            entity.HasIndex(d => d.CreatedAtUtc);
         });
     }
 }
