@@ -120,7 +120,10 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.AddScoped<ICustomerService, CustomerService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
+builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
+builder.Services.AddScoped<ITaxSettingService, TaxSettingService>();
+builder.Services.AddScoped<ITaxCalculationService, TaxCalculationService>();
 builder.Services.AddScoped<LandingPageService>();
 
 // ============================================================
@@ -132,7 +135,9 @@ builder.Services.AddScoped<ITenantRepository, TenantRepository>();
 builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<IDiscountRuleRepository, DiscountRuleRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
+builder.Services.AddScoped<ITaxRepository, TaxRepository>();
 
 // ============================================================
 // Authentication / JWT

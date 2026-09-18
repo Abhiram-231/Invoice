@@ -26,6 +26,12 @@ public class BillingDbContext : DbContext
 
     public DbSet<Product> Products { get; set; }
 
+    public DbSet<DiscountRule> DiscountRules { get; set; }
+
+    public DbSet<TaxRate> TaxRates { get; set; }
+
+    public DbSet<TaxSetting> TaxSettings { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -253,6 +259,80 @@ public class BillingDbContext : DbContext
             entity.HasIndex(p => new { p.TenantId, p.CategoryId });
             entity.HasIndex(p => new { p.TenantId, p.Status });
             entity.HasIndex(p => p.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<DiscountRule>(entity =>
+        {
+            entity.HasKey(d => d.Id);
+            entity.Property(d => d.Code).HasMaxLength(64).IsRequired();
+            entity.Property(d => d.Name).HasMaxLength(128).IsRequired();
+            entity.Property(d => d.Description).HasMaxLength(500);
+            entity.Property(d => d.Type).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(d => d.Scope).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(d => d.Value).HasPrecision(18, 2);
+            entity.Property(d => d.MinInvoiceAmount).HasPrecision(18, 2);
+            entity.Property(d => d.MaxDiscountAmount).HasPrecision(18, 2);
+            entity.Property(d => d.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(d => d.IsActive);
+            entity.Property(d => d.ApplicableRole).HasMaxLength(64);
+            entity.Property(d => d.RowVersion).IsRowVersion();
+
+            entity.HasOne(d => d.Tenant)
+                  .WithMany()
+                  .HasForeignKey(d => d.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(d => new { d.TenantId, d.Code }).IsUnique();
+            entity.HasIndex(d => new { d.TenantId, d.Status });
+            entity.HasIndex(d => d.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<TaxRate>(entity =>
+        {
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Name).HasMaxLength(128).IsRequired();
+            entity.Property(r => r.Code).HasMaxLength(64).IsRequired();
+            entity.Property(r => r.TaxType).HasMaxLength(32).HasDefaultValue("GST").IsRequired();
+            entity.Property(r => r.Rate).HasPrecision(5, 2).HasDefaultValue(0.00m);
+            entity.Property(r => r.Description).HasMaxLength(500);
+            entity.Property(r => r.IsCompound).HasDefaultValue(false);
+            entity.Property(r => r.IsInclusive).HasDefaultValue(false);
+            entity.Property(r => r.ApplicationLevel).HasMaxLength(32).HasDefaultValue("Item").IsRequired();
+            entity.Property(r => r.Priority).HasDefaultValue(1);
+            entity.Property(r => r.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(r => r.IsActive);
+            entity.Property(r => r.RowVersion).IsRowVersion();
+
+            entity.HasOne(r => r.Tenant)
+                  .WithMany()
+                  .HasForeignKey(r => r.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(r => new { r.TenantId, r.Code }).IsUnique();
+            entity.HasIndex(r => new { r.TenantId, r.TaxType });
+            entity.HasIndex(r => new { r.TenantId, r.Status });
+            entity.HasIndex(r => r.Priority);
+            entity.HasIndex(r => r.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<TaxSetting>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.IsTaxEnabled).HasDefaultValue(true);
+            entity.Property(s => s.DefaultTaxCalculation).HasMaxLength(32).HasDefaultValue("Exclusive").IsRequired();
+            entity.Property(s => s.PricesIncludeTax).HasDefaultValue(false);
+            entity.Property(s => s.TaxRegistrationNumber).HasMaxLength(64);
+            entity.Property(s => s.TaxNumberLabel).HasMaxLength(32).HasDefaultValue("GSTIN").IsRequired();
+            entity.Property(s => s.EnableMultipleTaxes).HasDefaultValue(true);
+            entity.Property(s => s.State).HasMaxLength(128);
+            entity.Property(s => s.RowVersion).IsRowVersion();
+
+            entity.HasOne(s => s.Tenant)
+                  .WithMany()
+                  .HasForeignKey(s => s.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => s.TenantId).IsUnique();
         });
     }
 }
