@@ -62,6 +62,18 @@ export const productApi = {
       });
     }
   },
+
+  getNextProductCode: async () => {
+    try {
+      const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.NEXT_CODE);
+      return ensureSuccess(response);
+    } catch (err) {
+      throw Object.assign(new Error(err.response?.data?.message || err.message || 'Failed to generate next product code.'), {
+        code: err.code,
+        status: err.response?.status ?? err.status,
+      });
+    }
+  },
 };
 
 export default productApi;

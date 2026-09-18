@@ -33,6 +33,35 @@ public class FakeProductRepository : IProductRepository
         return Task.FromResult(product);
     }
 
+    public Task<string> GetNextProductCodeAsync(int tenantId, string prefix = "PRD-")
+    {
+        var existingCodes = Products
+            .Where(p => p.TenantId == tenantId && p.ProductCode.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            .Select(p => p.ProductCode)
+            .ToList();
+
+        var maxNumber = 0;
+        foreach (var code in existingCodes)
+        {
+            var numberPart = code.Substring(prefix.Length);
+            if (int.TryParse(numberPart, out var n) && n > maxNumber)
+            {
+                maxNumber = n;
+            }
+        }
+
+        var nextNumber = maxNumber + 1;
+        var candidate = $"{prefix}{nextNumber}";
+
+        while (Products.Any(p => p.TenantId == tenantId && p.ProductCode.Equals(candidate, StringComparison.OrdinalIgnoreCase)))
+        {
+            nextNumber++;
+            candidate = $"{prefix}{nextNumber}";
+        }
+
+        return Task.FromResult(candidate);
+    }
+
     public Task<(List<Product> Items, int TotalCount)> GetPagedListAsync(int? tenantId, ProductQueryParameters query)
     {
         var queryable = Products.AsQueryable();
@@ -90,8 +119,8 @@ public class FakeProductRepository : IProductRepository
             ("name", true) => queryable.OrderByDescending(p => p.Name),
             ("price", false) => queryable.OrderBy(p => p.Price),
             ("price", true) => queryable.OrderByDescending(p => p.Price),
-            ("productcode" or "code", false) => queryable.OrderBy(p => p.ProductCode),
-            ("productcode" or "code", true) => queryable.OrderByDescending(p => p.ProductCode),
+            ("productcode" or "code", false) => queryable.OrderBy(p => p.ProductCode.Length).ThenBy(p => p.ProductCode),
+            ("productcode" or "code", true) => queryable.OrderByDescending(p => p.ProductCode.Length).ThenByDescending(p => p.ProductCode),
             ("category", false) => queryable.OrderBy(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("category", true) => queryable.OrderByDescending(p => p.Category ?? (p.ProductCategory != null ? p.ProductCategory.Name : string.Empty)),
             ("updatedat", false) => queryable.OrderBy(p => p.UpdatedAtUtc),

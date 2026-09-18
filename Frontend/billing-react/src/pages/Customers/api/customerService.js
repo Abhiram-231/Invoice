@@ -222,15 +222,17 @@ export async function getCustomerAudit(id) {
     );
   const display = (value) =>
     value != null && typeof value === "object" ? JSON.stringify(value) : value;
+  const clean = (value) =>
+    typeof value === "string" ? value.replace(/^[\s?]+\s*/, "") : value;
   return rows.map((r, index) => ({
     ...r,
     id: r.id ?? index,
     date: r.timestamp ?? r.createdAtUtc ?? r.date,
     user: display(r.user ?? r.userName),
     entity: r.entity ?? r.fieldName,
-    oldValue: display(r.oldValue ?? r.oldValues),
-    newValue: display(r.newValue ?? r.newValues ?? r.changes),
-    changes: display(r.changes),
+    oldValue: display(r.oldValue ?? r.oldValues) ?? null,
+    newValue: display(r.newValue ?? r.newValues) ?? null,
+    changes: clean(display(r.changes)),
   }));
 }
 // Callers must supply a confirmed request DTO; response profile fields are not a write contract.

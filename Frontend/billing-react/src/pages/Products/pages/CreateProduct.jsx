@@ -20,7 +20,7 @@ export function CreateProduct() {
 
     try {
       await productService.createProduct(formData);
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
       navigate('/products', {
         state: { productNotice: `Product "${formData.name}" created successfully.` },
       });

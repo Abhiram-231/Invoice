@@ -169,6 +169,10 @@ public class BillingDbContext : DbContext
             entity.Property(e => e.Action).HasMaxLength(50).IsRequired();
             entity.Property(e => e.UserName).HasMaxLength(200);
             entity.Property(e => e.Changes).HasColumnType("text");
+            entity.Property(e => e.Timestamp)
+                  .HasConversion(
+                      v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+                      v => DateTime.SpecifyKind(v, DateTimeKind.Utc));
 
             entity.HasOne(e => e.Customer)
                   .WithMany()

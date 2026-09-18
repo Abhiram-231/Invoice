@@ -13,10 +13,13 @@ export const productValidationSchema = yup.object({
   productCode: yup
     .string()
     .trim()
-    .required('Product code is required')
-    .min(2, 'Product code must be at least 2 characters')
-    .max(32, 'Product code must not exceed 32 characters')
-    .matches(CODE_REGEX, 'Product code must contain only letters, numbers, hyphens, and underscores'),
+    .test('product-code-format', 'Product code must contain only letters, numbers, hyphens, and underscores (2-32 chars)', (val) => {
+      if (!val || val.trim() === '') return true;
+      const trimmed = val.trim();
+      return trimmed.length >= 2 && trimmed.length <= 32 && CODE_REGEX.test(trimmed);
+    })
+    .nullable()
+    .transform((curr, orig) => (orig === '' ? null : curr)),
 
   name: yup
     .string()

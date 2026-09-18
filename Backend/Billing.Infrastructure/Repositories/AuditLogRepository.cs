@@ -22,20 +22,26 @@ public class AuditLogRepository : IAuditLogRepository
 
     public async Task<List<AuditLog>> GetByCustomerIdAsync(int tenantId, int customerId, CancellationToken cancellationToken = default)
     {
-        return await _context.AuditLogs
+        var logs = await _context.AuditLogs
             .AsNoTracking()
             .Where(a => a.TenantId == tenantId && a.CustomerId == customerId)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync(cancellationToken);
+
+        logs.ForEach(SanitizeChanges);
+        return logs;
     }
 
     public async Task<List<AuditLog>> GetByEntityAsync(int tenantId, string entityName, string entityId, CancellationToken cancellationToken = default)
     {
-        return await _context.AuditLogs
+        var logs = await _context.AuditLogs
             .AsNoTracking()
             .Where(a => a.TenantId == tenantId && a.EntityName == entityName && a.EntityId == entityId)
             .OrderByDescending(a => a.Timestamp)
             .ToListAsync(cancellationToken);
+
+        logs.ForEach(SanitizeChanges);
+        return logs;
     }
 
     public async Task<(List<AuditLog> Items, int TotalCount)> GetPagedAsync(int tenantId, int page, int pageSize, CancellationToken cancellationToken = default)
@@ -52,6 +58,15 @@ public class AuditLogRepository : IAuditLogRepository
             .Take(pageSize)
             .ToListAsync(cancellationToken);
 
+        items.ForEach(SanitizeChanges);
         return (items, totalCount);
+    }
+
+    private static void SanitizeChanges(AuditLog log)
+    {
+        if (!string.IsNullOrEmpty(log.Changes))
+        {
+            log.Changes = System.Text.RegularExpressions.Regex.Replace(log.Changes, @"^[\s?]+\s*", "");
+        }
     }
 }

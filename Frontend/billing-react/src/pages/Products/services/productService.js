@@ -49,6 +49,7 @@ export const productApiService = {
   async getProductById(id) { return normalizeProduct(await productApi.getProductById(id)); },
   createProduct: data => productApi.createProduct(productPayload(data)),
   updateProduct: (id, data) => productApi.updateProduct(id, productPayload(data)),
+  getNextProductCode: () => productApi.getNextProductCode(),
 };
 
 export const productService = productApiService;

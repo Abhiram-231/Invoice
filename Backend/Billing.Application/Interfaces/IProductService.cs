@@ -21,4 +21,6 @@ public interface IProductService
     Task<ApiResponse<ProductCategoryDto>> CreateCategoryAsync(CreateCategoryRequest request, int tenantId);
 
     Task<ApiResponse<ProductCategoryDto>> UpdateCategoryStatusAsync(int categoryId, bool isActive, int tenantId);
+
+    Task<ApiResponse<string>> GetNextProductCodeAsync(int tenantId);
 }

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Alert, Button, CircularProgress, Collapse, Switch, useMediaQuery } from '@mui/material';
@@ -19,6 +19,7 @@ import {
 } from '../validation/productValidation';
 import '../styles/product-form.css';
 import { useCategories, categoryError } from '../services/categoryService';
+import { productService } from '../services/productService';
 
 const getCurrencySymbol = (currency) => {
   switch (currency) {
@@ -43,6 +44,7 @@ export function ProductForm({
   mode = 'create',
 }) {
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const [loadingNextCode, setLoadingNextCode] = useState(mode === 'create' && !initialValues?.productCode);
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
@@ -70,8 +72,8 @@ export function ProductForm({
     control,
     watch,
     reset,
-    setError,
     setValue,
+    setError,
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
@@ -85,6 +87,30 @@ export function ProductForm({
       reset(getSanitizedInitialValues(initialValues));
     }
   }, [initialValues, reset]);
+
+  // Auto-fetch next sequential product code for create mode
+  useEffect(() => {
+    let isMounted = true;
+    if (mode === 'create' && !initialValues?.productCode) {
+      setLoadingNextCode(true);
+      productService
+        .getNextProductCode()
+        .then((code) => {
+          if (isMounted && code) {
+            setValue('productCode', code, { shouldValidate: true });
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load next product code:', err);
+        })
+        .finally(() => {
+          if (isMounted) setLoadingNextCode(false);
+        });
+    }
+    return () => {
+      isMounted = false;
+    };
+  }, [mode, initialValues?.productCode, setValue]);
 
   const selectedCurrency = watch('currency') || 'INR';
   const currencySymbol = getCurrencySymbol(selectedCurrency);
@@ -160,12 +186,19 @@ export function ProductForm({
             <div className="product-form-field">
               <label htmlFor="productCode" className="product-field-label">
                 Product Code <span className="product-field-required">*</span>
+                {mode === 'create' && (
+                  <span className="product-field-badge">
+                    {loadingNextCode ? 'Generating…' : 'Auto-assigned'}
+                  </span>
+                )}
               </label>
               <input
                 id="productCode"
                 type="text"
-                placeholder="e.g. PRD-101"
-                className={`product-input ${errors.productCode ? 'has-error' : ''}`}
+                readOnly={mode === 'create' || Boolean(initialValues?.productCode)}
+                tabIndex={-1}
+                placeholder={loadingNextCode ? 'Generating code…' : 'e.g. PRD-8'}
+                className={`product-input is-readonly ${errors.productCode ? 'has-error' : ''}`}
                 aria-invalid={Boolean(errors.productCode)}
                 aria-describedby={errors.productCode ? 'productCode-err' : undefined}
                 {...register('productCode')}
