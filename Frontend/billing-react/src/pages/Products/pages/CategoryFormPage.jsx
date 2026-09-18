@@ -34,7 +34,7 @@ function CategoryForm({ category, categories }) {
     if (busy) return;
     const validation = validateCategory(values, categories, category?.id);
     if (validation) { setError(validation); return; }
-    if (category?.status === 'Active' && values.status === 'Inactive') setConfirm(true);
+    if (category && category.status !== values.status) setConfirm(true);
     else save();
   };
   return <div className="product-form-container category-form">
@@ -48,7 +48,7 @@ function CategoryForm({ category, categories }) {
       </div>
       <div className="category-form-actions"><Button disabled={busy} component={Link} to="/products/categories" variant="outlined">Cancel</Button><Button disabled={busy} type="submit" variant="contained">{busy ? 'Saving...' : category ? 'Save Changes' : 'Save Category'}</Button></div>
     </form>
-    <DeactivateCategoryDialog busy={busy} open={confirm} onClose={() => setConfirm(false)} onConfirm={save} />
+    <DeactivateCategoryDialog busy={busy} open={confirm} activating={values.status === 'Active'} onClose={() => setConfirm(false)} onConfirm={save} />
   </div>;
 }
 

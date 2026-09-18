@@ -6,6 +6,13 @@ export function categoryError(error, fallback = 'Unable to load categories. Plea
   if (status === 401) return 'Please sign in to access categories.';
   if (status === 403) return 'You do not have permission to manage categories.';
   if (status === 404) return 'Category not found. Return to the category list and refresh.';
+  if ([400, 409, 422].includes(status)) {
+    const data = error?.response?.data;
+    const messages = [data?.errors && Object.values(data.errors).flat(), data?.message, data?.title].flat().filter(value =>
+      typeof value === 'string' && value.trim() && value.length <= 240 &&
+      !/[<>]|stack\s*trace|exception|\bat\s+\S+\(|\bselect\b.+\bfrom\b/i.test(value));
+    if (messages.length) return [...new Set(messages)].join(' ');
+  }
   if (status === 409) return 'The category conflicts with an existing name or has changed. Refresh and try again.';
   if (status === 400 || status === 422) return 'The category could not be saved. Check the name, status, and whether the name already exists.';
   return fallback;

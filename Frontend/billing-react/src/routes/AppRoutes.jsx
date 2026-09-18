@@ -11,6 +11,9 @@ import { Dashboard } from '../pages/Dashboard/Dashboard';
 import { CreateInvoice } from '../pages/CreateInvoice/CreateInvoice';
 import { AppLayout } from '../layouts/AppLayout';
 import { ModulePlaceholder } from '../pages/ModulePlaceholder/ModulePlaceholder';
+import { SettingsLanding } from '../pages/Settings/SettingsLanding';
+import { DiscountConfiguration } from '../pages/Settings/DiscountConfiguration';
+import { ChargesConfiguration } from '../pages/Settings/ChargesConfiguration';
 
 import { Payments } from '../pages/Payments/Payments';
 import { Invoices } from '../pages/Invoices/Invoices';
@@ -103,7 +106,9 @@ export const AppRoutes = () => (
       <Route path="/templates-branding" element={<ModulePlaceholder />} />
       <Route path="/invoice-numbering" element={<ModulePlaceholder />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
-      <Route path="/settings" element={<ModulePlaceholder />} />
+      <Route path="/settings" element={<SettingsLanding />} />
+      <Route path="/settings/discounts" element={<DiscountConfiguration />} />
+      <Route path="/settings/charges" element={<ChargesConfiguration />} />
       <Route path="/support" element={<ModulePlaceholder />} />
     </Route>
 

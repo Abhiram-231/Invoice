@@ -1,0 +1,18 @@
+[
+  {
+    "path": "/swagger/v1/swagger.json",
+    "status": 200,
+    "contentType": "application/json;charset=utf-8",
+    "bytes": 42370
+  },
+  {
+    "path": "/api/v1/products",
+    "status": 401,
+    "contentType": null
+  },
+  {
+    "path": "/api/v1/categories",
+    "status": 401,
+    "contentType": null
+  }
+]

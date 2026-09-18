@@ -35,6 +35,25 @@ const getCurrencySymbol = (currency) => {
   }
 };
 
+export const getProductInitialValues = (values) => {
+  if (!values) return DEFAULT_PRODUCT_VALUES;
+  return {
+    productCode: values.productCode || '',
+    name: values.name || '',
+    description: values.description || '',
+    type: values.type || 'Product',
+    categoryId: values.categoryId == null ? '' : String(values.categoryId),
+    unit: values.unit || 'Piece',
+    price: values.price !== undefined && values.price !== null ? values.price : '',
+    currency: values.currency || 'INR',
+    taxCategory: values.taxCategory ?? '',
+    hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
+    discountPercentage: values.discountPercentage ?? values.discountPercent ?? values.DiscountPercent ?? '',
+    discountAllowed: values.discountAllowed !== false,
+    status: values.status || 'Active',
+  };
+};
+
 export function ProductForm({
   initialValues = null,
   onSubmit,
@@ -47,24 +66,7 @@ export function ProductForm({
   const [loadingNextCode, setLoadingNextCode] = useState(mode === 'create' && !initialValues?.productCode);
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
-  const getSanitizedInitialValues = (values) => {
-    if (!values) return DEFAULT_PRODUCT_VALUES;
-    return {
-      productCode: values.productCode || '',
-      name: values.name || '',
-      description: values.description || '',
-      type: values.type || 'Product',
-      categoryId: values.categoryId == null ? '' : String(values.categoryId),
-      unit: values.unit || 'Piece',
-      price: values.price !== undefined && values.price !== null ? values.price : '',
-      currency: values.currency || 'INR',
-      taxCategory: values.taxCategory || 'GST 18%',
-      hsnSac: values.hsnSac ?? values.hsnSacCode ?? '',
-      discountPercentage: values.discountPercentage ?? values.discountPercent ?? values.DiscountPercent ?? '',
-      discountAllowed: values.discountAllowed !== false,
-      status: values.status || 'Active',
-    };
-  };
+
 
   const {
     register,
@@ -77,14 +79,14 @@ export function ProductForm({
     formState: { errors },
   } = useForm({
     resolver: yupResolver(productValidationSchema),
-    defaultValues: getSanitizedInitialValues(initialValues),
+    defaultValues: getProductInitialValues(initialValues),
     mode: 'onTouched',
   });
 
   // Re-populate when initialValues change (edit mode async loading)
   useEffect(() => {
     if (initialValues) {
-      reset(getSanitizedInitialValues(initialValues));
+      reset(getProductInitialValues(initialValues));
     }
   }, [initialValues, reset]);
 
@@ -146,7 +148,7 @@ export function ProductForm({
       unit: data.unit?.trim(),
       price: Number(data.price) || 0,
       currency: data.currency || 'INR',
-      taxCategory: data.taxCategory || 'GST 18%',
+      taxCategory: data.taxCategory ?? '',
       hsnSac: data.hsnSac?.trim() || '',
       discountAllowed: Boolean(data.discountAllowed),
       discountPercentage: data.discountAllowed ? Number(data.discountPercentage) : 0,
@@ -331,6 +333,7 @@ export function ProductForm({
                 aria-invalid={Boolean(errors.unit)}
                 {...register('unit')}
               >
+                {initialValues?.unit && !STANDARD_UNITS.includes(initialValues.unit) && <option value={initialValues.unit}>{initialValues.unit}</option>}
                 {STANDARD_UNITS.map((u) => (
                   <option key={u} value={u}>
                     {u}
@@ -405,6 +408,7 @@ export function ProductForm({
                 aria-invalid={Boolean(errors.taxCategory)}
                 {...register('taxCategory')}
               >
+                <option value="">Not set</option>
                 {TAX_CATEGORIES.map((tax) => (
                   <option key={tax} value={tax}>
                     {tax}

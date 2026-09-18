@@ -3,13 +3,13 @@ import { ProductActionsMenu } from './ProductActionsMenu';
 import { ProductEmptyState, ProductErrorState } from './ProductStates';
 import { Inventory2Outlined, DesignServicesOutlined } from '@mui/icons-material';
 import { Link } from 'react-router-dom';
+import { formatProductPrice } from '../utils/formatProductPrice';
 
 const columns = [
   ['productCode', 'Product Code', true], ['name', 'Product Name', true], ['type', 'Type'],
   ['category', 'Category', true], ['unit', 'Unit'], ['price', 'Price', true],
-  ['taxCategory', 'Tax Category'], ['status', 'Status', true], ['actions', 'Actions'],
+  ['taxCategory', 'Tax Category'], ['status', 'Status'], ['actions', 'Actions'],
 ];
-const currency = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', minimumFractionDigits: 2 });
 
 export function ProductTable({ items, loading, error, params, onSort, filtered, onClear, onRetry }) {
   return <TableContainer className="product-table" tabIndex={0} aria-label="Scrollable product catalog" aria-busy={loading}>
@@ -25,7 +25,7 @@ export function ProductTable({ items, loading, error, params, onSort, filtered, 
           <TableCell><div className="product-identity"><span className={`product-row-icon ${product.type.toLowerCase()}`} aria-hidden="true">{product.type === 'Service' ? <DesignServicesOutlined fontSize="small" /> : <Inventory2Outlined fontSize="small" />}</span><Tooltip title={product.name}><Link to={`/products/${encodeURIComponent(product.id)}`} className="product-name">{product.name}</Link></Tooltip></div></TableCell>
           <TableCell><span className={`product-badge ${product.type.toLowerCase()}`}>{product.type}</span></TableCell>
           <TableCell><Tooltip title={product.category}><span className="product-category">{product.category}</span></Tooltip></TableCell>
-          <TableCell>{product.unit}</TableCell><TableCell align="right" className="product-price">{currency.format(product.price)}</TableCell>
+          <TableCell>{product.unit || '-'}</TableCell><TableCell align="right" className="product-price">{formatProductPrice(product.price, product.currency)}</TableCell>
           <TableCell>{product.taxCategory}</TableCell><TableCell><span className={`product-badge ${product.status.toLowerCase()}`}>{product.status}</span></TableCell>
           <TableCell><ProductActionsMenu product={product} /></TableCell>
         </TableRow>)}
