@@ -18,6 +18,7 @@ export const API_ENDPOINTS = {
     BASE: '/api/v1/products',
     BY_ID: (id) => `/api/v1/products/${id}`,
     DEACTIVATE: (id) => `/api/v1/products/${id}/deactivate`,
+    NEXT_CODE: '/api/v1/products/next-code',
   },
   CATEGORIES: {
     BASE: '/api/v1/categories',

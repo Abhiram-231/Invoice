@@ -20,7 +20,7 @@ export function CreateProduct() {
 
     try {
       const created = await productService.createProduct(formData);
-      await queryClient.invalidateQueries({ queryKey: ['products'] });
+      await queryClient.invalidateQueries({ queryKey: ['products'], refetchType: 'all' });
       navigate(created?.id != null ? `/products/${encodeURIComponent(created.id)}/edit` : '/products', {
         replace: true,
         state: { productNotice: `Product "${formData.name}" created successfully.` },

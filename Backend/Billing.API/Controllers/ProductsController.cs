@@ -55,6 +55,33 @@ public class ProductsController : ControllerBase
     }
 
     /// <summary>
+    /// Retrieve the next auto-increment product code for current tenant.
+    /// </summary>
+    [Authorize(Roles = "TenantAdmin,SuperAdmin,User")]
+    [HttpGet("next-code")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetNextProductCode()
+    {
+        var tenantId = GetTenantId();
+        if (!tenantId.HasValue)
+        {
+            if (User.IsInRole("SuperAdmin"))
+            {
+                return BadRequest(new { success = false, message = "Target tenant ID must be specified via X-Tenant-Id header for SuperAdmin." });
+            }
+            return Forbid();
+        }
+
+        var result = await _productService.GetNextProductCodeAsync(tenantId.Value);
+        if (!result.Success)
+        {
+            return BadRequest(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Retrieve a paginated list of products with search, filtering, and sorting. (IBMSBE-002)
     /// </summary>
     [Authorize(Roles = "TenantAdmin,SuperAdmin,User,Customer")]

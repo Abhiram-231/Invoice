@@ -239,6 +239,9 @@ public class CustomersController : ControllerBase
             return Forbid();
         }
 
+        var existingCustomer = await _customerService.GetCustomerByIdAsync(id, tenantId);
+        var wasActive = existingCustomer.Success && (existingCustomer.Data?.IsActive ?? true);
+
         var result = await _customerService.UpdateCustomerAsync(id, request, tenantId);
 
         if (!result.Success)
@@ -258,7 +261,8 @@ public class CustomersController : ControllerBase
 
         // Record UPDATE or DEACTIVATE audit event (IBMSBE-Audit-02)
         var resolvedTenantId = tenantId ?? 1;
-        if (request.IsActive == false)
+        var isNowInactive = request.IsActive == false || string.Equals(request.Status, "inactive", StringComparison.OrdinalIgnoreCase);
+        if (wasActive && isNowInactive)
         {
             await _auditService.RecordCustomerDeactivatedAsync(
                 resolvedTenantId,
@@ -269,15 +273,76 @@ public class CustomersController : ControllerBase
         }
         else
         {
+            var changesDescription = GetCustomerChangesDescription(existingCustomer.Data, request);
             await _auditService.RecordCustomerUpdatedAsync(
                 resolvedTenantId,
                 id,
                 result.Data?.Name ?? "Customer",
                 GetUserName(),
-                request);
+                changesDescription);
         }
 
         return Ok(result);
+    }
+
+    private static string GetCustomerChangesDescription(CustomerDto? existing, UpdateCustomerRequest req)
+    {
+        if (existing == null) return "Customer updated";
+
+        var changed = new List<string>();
+
+        if (req.Name != null && !string.Equals(existing.Name?.Trim(), req.Name.Trim(), StringComparison.Ordinal))
+            changed.Add("Name");
+
+        if (req.Email != null && !string.Equals(existing.Email?.Trim(), req.Email.Trim(), StringComparison.OrdinalIgnoreCase))
+            changed.Add("Email");
+
+        if (req.Phone != null && !string.Equals(existing.Phone?.Trim() ?? "", req.Phone.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Phone");
+
+        if (req.CompanyName != null && !string.Equals(existing.CompanyName?.Trim() ?? "", req.CompanyName.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Company Name");
+
+        if (req.CustomerType != null && !string.Equals(existing.CustomerType?.Trim() ?? "", req.CustomerType.Trim() ?? "", StringComparison.OrdinalIgnoreCase))
+            changed.Add("Customer Type");
+
+        if (req.TaxId != null && !string.Equals(existing.TaxId?.Trim() ?? "", req.TaxId.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Tax ID");
+
+        if (req.Address != null && !string.Equals(existing.Address?.Trim() ?? "", req.Address.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Address");
+
+        if (req.City != null && !string.Equals(existing.City?.Trim() ?? "", req.City.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("City");
+
+        if (req.State != null && !string.Equals(existing.State?.Trim() ?? "", req.State.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("State");
+
+        if (req.PostalCode != null && !string.Equals(existing.PostalCode?.Trim() ?? "", req.PostalCode.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Postal Code");
+
+        if (req.Country != null && !string.Equals(existing.Country?.Trim() ?? "", req.Country.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Country");
+
+        if (req.Website != null && !string.Equals(existing.Website?.Trim() ?? "", req.Website.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Website");
+
+        if (req.Notes != null && !string.Equals(existing.Notes?.Trim() ?? "", req.Notes.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Notes");
+
+        if (req.Currency != null && !string.Equals(existing.Currency?.Trim() ?? "", req.Currency.Trim() ?? "", StringComparison.OrdinalIgnoreCase))
+            changed.Add("Currency");
+
+        if (req.PaymentTerms != null && !string.Equals(existing.PaymentTerms?.Trim() ?? "", req.PaymentTerms.Trim() ?? "", StringComparison.Ordinal))
+            changed.Add("Payment Terms");
+
+        if (req.Status != null && !string.Equals(existing.Status?.Trim() ?? "", req.Status.Trim() ?? "", StringComparison.OrdinalIgnoreCase))
+            changed.Add("Status");
+
+        if (!changed.Any())
+            return "Customer updated";
+
+        return $"{string.Join(", ", changed)} updated";
     }
 
     /// <summary>

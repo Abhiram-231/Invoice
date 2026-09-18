@@ -96,7 +96,45 @@ public class ProductBackendTests
         var createdResult = Assert.IsType<CreatedAtActionResult>(response);
         var apiResponse = Assert.IsType<ApiResponse<ProductDto>>(createdResult.Value);
         Assert.True(apiResponse.Success);
-        Assert.StartsWith("PROD-", apiResponse.Data!.ProductCode);
+        Assert.StartsWith("PRD-", apiResponse.Data!.ProductCode);
+        Assert.Equal("PRD-1", apiResponse.Data!.ProductCode);
+    }
+
+    [Fact]
+    public async Task CreateProduct_MultipleWithoutCode_IncrementsSequentially()
+    {
+        var res1 = await _controller.CreateProduct(new CreateProductRequest { Name = "Item 1", Price = 10, Type = "Product" });
+        var res2 = await _controller.CreateProduct(new CreateProductRequest { Name = "Item 2", Price = 20, Type = "Product" });
+
+        var data1 = Assert.IsType<ApiResponse<ProductDto>>(Assert.IsType<CreatedAtActionResult>(res1).Value).Data!;
+        var data2 = Assert.IsType<ApiResponse<ProductDto>>(Assert.IsType<CreatedAtActionResult>(res2).Value).Data!;
+
+        Assert.Equal("PRD-1", data1.ProductCode);
+        Assert.Equal("PRD-2", data2.ProductCode);
+    }
+
+    [Fact]
+    public async Task GetNextProductCode_ReturnsOkWithNextCode()
+    {
+        var response = await _controller.GetNextProductCode();
+
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        var apiResponse = Assert.IsType<ApiResponse<string>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.Equal("PRD-1", apiResponse.Data);
+    }
+
+    [Fact]
+    public async Task GetNextProductCode_AfterProductsExist_ReturnsNextSequentialCode()
+    {
+        await _controller.CreateProduct(new CreateProductRequest { Name = "First Item", Price = 10, Type = "Product" });
+
+        var response = await _controller.GetNextProductCode();
+
+        var okResult = Assert.IsType<OkObjectResult>(response);
+        var apiResponse = Assert.IsType<ApiResponse<string>>(okResult.Value);
+        Assert.True(apiResponse.Success);
+        Assert.Equal("PRD-2", apiResponse.Data);
     }
 
     [Fact]

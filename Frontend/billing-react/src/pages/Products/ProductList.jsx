@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
-import { Breadcrumbs, Button } from '@mui/material';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Alert, Breadcrumbs, Button } from '@mui/material';
 import { Add, Inventory2Outlined } from '@mui/icons-material';
 import { productService } from './services/productService';
 import { ProductFilters } from './components/ProductFilters';
@@ -10,11 +10,22 @@ import { ProductPagination } from './components/ProductPagination';
 import { ProductSummaryCards } from './components/ProductSummaryCards';
 import './styles/products.css';
 import './styles/product-list.css';
-import { useCategories } from './services/categoryService';
+import { useCategories, categoryError } from './services/categoryService';
 
 const initialParams = { search: '', category: '', status: '', pageNumber: 1, pageSize: 10, sortBy: 'productCode', sortOrder: 'asc' };
 
 export function ProductList() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const [notice, setNotice] = useState(location.state?.productNotice || '');
+
+  useEffect(() => {
+    if (location.state?.productNotice) {
+      setNotice(location.state.productNotice);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
+
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const [search, setSearch] = useState('');
@@ -36,6 +47,8 @@ export function ProductList() {
   return <main className="product-page product-list-page">
     <Breadcrumbs aria-label="Breadcrumb"><span>Products &amp; Services</span><span>Product List</span></Breadcrumbs>
     <header className="product-heading"><div><span className="product-eyebrow">YOUR BILLING CATALOG</span><h1>Products &amp; Services</h1><p>Manage products and services used for billing and invoicing.</p></div><div className="product-row-actions"><Button component={Link} to="/products/categories" variant="outlined">Categories</Button><Button component={Link} to="/products/new" variant="contained" startIcon={<Add />}>Add Product</Button></div></header>
+    {categoriesQuery.isError && <Alert severity="error" action={<Button onClick={() => categoriesQuery.refetch()}>Retry</Button>}>{categoryError(categoriesQuery.error)}</Alert>}
+    {notice && <Alert severity="success" onClose={() => setNotice('')} sx={{ mb: 2 }}>{notice}</Alert>}
     <ProductSummaryCards summary={catalog.data?.summary} />
     <section className="product-panel" aria-label="Product list">
       <div className="product-panel-heading"><div className="product-panel-title"><span className="product-panel-icon"><Inventory2Outlined fontSize="small" /></span><div><h2>Product catalog</h2><p>Everything you bill, organized in one place.</p></div></div><span className="product-result-count" role="status">{loading ? 'Loading catalog…' : error ? 'Catalog unavailable' : updating ? 'Updating results?' : `${query.data?.totalCount ?? 0} ${active ? 'matching ' : ''}items`}</span></div>

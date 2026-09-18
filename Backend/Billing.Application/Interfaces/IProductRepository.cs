@@ -11,6 +11,8 @@ public interface IProductRepository
 
     Task<Product?> GetByCodeAsync(string productCode, int? tenantId = null);
 
+    Task<string> GetNextProductCodeAsync(int tenantId, string prefix = "PRD-");
+
     Task<(List<Product> Items, int TotalCount)> GetPagedListAsync(int? tenantId, ProductQueryParameters query);
 
     Task<Product> AddAsync(Product product);

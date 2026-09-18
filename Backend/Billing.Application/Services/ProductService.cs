@@ -32,7 +32,7 @@ public class ProductService : IProductService
         }
 
         var code = string.IsNullOrWhiteSpace(request.ProductCode)
-            ? $"PROD-{Guid.NewGuid().ToString("N")[..8].ToUpperInvariant()}"
+            ? await _productRepository.GetNextProductCodeAsync(tenantId, "PRD-")
             : request.ProductCode.Trim().ToUpperInvariant();
 
         var existingWithCode = await _productRepository.GetByCodeAsync(code, tenantId);
@@ -341,6 +341,17 @@ public class ProductService : IProductService
         return ApiResponse<ProductCategoryDto>.Ok(
             MapCategoryToDto(updated, productCount),
             $"Category '{category.Name}' {actionText} successfully. ({productCount} products currently in this category).");
+    }
+
+    public async Task<ApiResponse<string>> GetNextProductCodeAsync(int tenantId)
+    {
+        if (tenantId <= 0)
+        {
+            return ApiResponse<string>.Fail("Invalid tenant identifier", "A valid positive Tenant ID is required.");
+        }
+
+        var nextCode = await _productRepository.GetNextProductCodeAsync(tenantId, "PRD-");
+        return ApiResponse<string>.Ok(nextCode, "Next product code retrieved successfully.");
     }
 
     private static ProductCategoryDto MapCategoryToDto(ProductCategory c, int productCount = 0)
