@@ -124,6 +124,11 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITaxSettingService, TaxSettingService>();
 builder.Services.AddScoped<ITaxCalculationService, TaxCalculationService>();
+builder.Services.AddScoped<IChargeSettingService, ChargeSettingService>();
+builder.Services.AddScoped<IChargeCalculationService, ChargeCalculationService>();
+builder.Services.AddScoped<INumberingSettingService, NumberingSettingService>();
+builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
+builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<LandingPageService>();
 
 // ============================================================
@@ -138,6 +143,8 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IDiscountRuleRepository, DiscountRuleRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ITaxRepository, TaxRepository>();
+builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
+builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 
 // ============================================================
 // Authentication / JWT

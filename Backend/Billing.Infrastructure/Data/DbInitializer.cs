@@ -172,6 +172,140 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Seeded default tax rates for tenant 1");
             }
+
+            if (!await context.ChargeConfigurations.AnyAsync(c => c.TenantId == 1))
+            {
+                var defaultCharges = new List<ChargeConfiguration>
+                {
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "Standard Shipping",
+                        Code = "SHIPPING-STD",
+                        Description = "Standard parcel shipping charge",
+                        ChargeType = Domain.Enums.ChargeType.Shipping,
+                        CalculationType = Domain.Enums.ChargeCalculationType.Fixed,
+                        Amount = 50.00m,
+                        IsTaxable = true,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "Handling Fee",
+                        Code = "HANDLING-FEE",
+                        Description = "Order packaging and handling fee",
+                        ChargeType = Domain.Enums.ChargeType.Handling,
+                        CalculationType = Domain.Enums.ChargeCalculationType.Fixed,
+                        Amount = 25.00m,
+                        IsTaxable = true,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "Convenience Fee",
+                        Code = "CONV-FEE",
+                        Description = "Digital payment processing fee",
+                        ChargeType = Domain.Enums.ChargeType.ConvenienceFee,
+                        CalculationType = Domain.Enums.ChargeCalculationType.Percentage,
+                        Amount = 2.00m,
+                        IsTaxable = true,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "Late Payment Fee",
+                        Code = "LATE-FEE",
+                        Description = "Invoice overdue late fee",
+                        ChargeType = Domain.Enums.ChargeType.LateFee,
+                        CalculationType = Domain.Enums.ChargeCalculationType.Fixed,
+                        Amount = 100.00m,
+                        IsTaxable = false,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    }
+                };
+
+                await context.ChargeConfigurations.AddRangeAsync(defaultCharges);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default charge configurations for tenant 1");
+            }
+
+            if (!await context.NumberingSettings.AnyAsync(s => s.TenantId == 1))
+            {
+                var defaultNumbering = new List<NumberingSetting>
+                {
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Invoice",
+                        Prefix = "INV-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Credit Note",
+                        Prefix = "CN-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Estimate / Quote",
+                        Prefix = "EST-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.Yearly,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Recurring Invoice",
+                        Prefix = "REC-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.Yearly,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        DocumentType = "Delivery Challan",
+                        Prefix = "DC-",
+                        Tokens = "{YEAR}-",
+                        SequenceLength = 4,
+                        NextNumber = 1,
+                        ResetPolicy = Domain.Enums.ResetPolicy.FinancialYear,
+                        Status = "Active",
+                        CreatedAtUtc = DateTime.UtcNow
+                    }
+                };
+
+                await context.NumberingSettings.AddRangeAsync(defaultNumbering);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default numbering settings for tenant 1");
+            }
         }
         catch (Exception ex)
         {

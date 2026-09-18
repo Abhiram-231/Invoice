@@ -32,6 +32,10 @@ public class BillingDbContext : DbContext
 
     public DbSet<TaxSetting> TaxSettings { get; set; }
 
+    public DbSet<ChargeConfiguration> ChargeConfigurations { get; set; }
+
+    public DbSet<NumberingSetting> NumberingSettings { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -333,6 +337,56 @@ public class BillingDbContext : DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasIndex(s => s.TenantId).IsUnique();
+        });
+
+        modelBuilder.Entity<ChargeConfiguration>(entity =>
+        {
+            entity.HasKey(c => c.Id);
+            entity.Property(c => c.Name).HasMaxLength(128).IsRequired();
+            entity.Property(c => c.Code).HasMaxLength(64).IsRequired();
+            entity.Property(c => c.Description).HasMaxLength(500);
+            entity.Property(c => c.ChargeType).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(c => c.CalculationType).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(c => c.Amount).HasPrecision(18, 2);
+            entity.Property(c => c.MinInvoiceAmount).HasPrecision(18, 2);
+            entity.Property(c => c.MaxChargeAmount).HasPrecision(18, 2);
+            entity.Property(c => c.IsTaxable).HasDefaultValue(true);
+            entity.Property(c => c.TaxCategory).HasMaxLength(64);
+            entity.Property(c => c.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(c => c.IsActive);
+            entity.Property(c => c.RowVersion).IsRowVersion();
+
+            entity.HasOne(c => c.Tenant)
+                  .WithMany()
+                  .HasForeignKey(c => c.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(c => new { c.TenantId, c.Code }).IsUnique();
+            entity.HasIndex(c => new { c.TenantId, c.Status });
+            entity.HasIndex(c => c.CreatedAtUtc);
+        });
+
+        modelBuilder.Entity<NumberingSetting>(entity =>
+        {
+            entity.HasKey(s => s.Id);
+            entity.Property(s => s.DocumentType).HasMaxLength(64).IsRequired();
+            entity.Property(s => s.Prefix).HasMaxLength(32).HasDefaultValue("INV-").IsRequired();
+            entity.Property(s => s.Suffix).HasMaxLength(32).HasDefaultValue(string.Empty);
+            entity.Property(s => s.Tokens).HasMaxLength(64).HasDefaultValue("{YEAR}-").IsRequired();
+            entity.Property(s => s.SequenceLength).HasDefaultValue(4).IsRequired();
+            entity.Property(s => s.NextNumber).HasDefaultValue(1).IsRequired();
+            entity.Property(s => s.ResetPolicy).HasConversion<string>().HasMaxLength(32).IsRequired();
+            entity.Property(s => s.Status).HasMaxLength(32).HasDefaultValue("Active").IsRequired();
+            entity.Ignore(s => s.IsActive);
+            entity.Property(s => s.RowVersion).IsRowVersion();
+
+            entity.HasOne(s => s.Tenant)
+                  .WithMany()
+                  .HasForeignKey(s => s.TenantId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasIndex(s => new { s.TenantId, s.DocumentType }).IsUnique();
+            entity.HasIndex(s => new { s.TenantId, s.Status });
         });
     }
 }
