@@ -6,9 +6,15 @@ import { DashboardHeader } from '../../components/dashboard/DashboardHeader';
 import { taxService, taxError, TAX_CONTRACT_BLOCKER } from '../../services/taxService';
 import { TAX_TYPES, emptyTax, validateTax, calculatePreview } from './taxModel';
 import './TaxSettings.css';
+import { taxDemoService } from './taxDemoService';
+
+const demoMode = import.meta.env.VITE_TAX_DEMO_MODE !== 'false';
+const activeTaxService = demoMode ? taxDemoService : taxService;
+const taxQueryKey = ['tax-settings', demoMode ? 'demo' : 'live'];
+const demoNotice = 'Demo data — sample tax rules only. Changes reset when you refresh and are not saved to the backend.';
 
 const money = value => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(value);
-const useTaxes = () => useQuery({ queryKey: ['tax-settings'], queryFn: taxService.list, retry: false });
+const useTaxes = () => useQuery({ queryKey: taxQueryKey, queryFn: activeTaxService.list, retry: false });
 
 function Field({ name, label, value, onChange, options, error, required = false, type = 'text', ...props }) {
   return <div className="tax-form-group"><label htmlFor={`tax-${name}`}>{label}{required && <span aria-hidden="true"> *</span>}</label>
@@ -49,7 +55,7 @@ function TaxList() {
   const taxes = query.data || [];
   const filtered = taxes.filter(tax => `${tax.name} ${tax.code}`.toLowerCase().includes(search.toLowerCase()) && (type === 'All' || tax.type === type) && (status === 'All' || tax.status === status));
   return <><header className="tax-settings-header"><div><span className="tax-eyebrow">BILLING CONFIGURATION</span><h1>Tax Settings</h1><p>Configure taxes used for invoice and billing calculations.</p></div><Link className="tax-primary-btn" to="/taxes/new">+ Add Tax</Link></header>
-    {state?.taxNotice && <Alert severity="success">{state.taxNotice}</Alert>}
+    {demoMode && <div className="tax-demo-notice" role="note">{demoNotice}</div>}{state?.taxNotice && <Alert severity="success">{state.taxNotice}</Alert>}
     {query.isPending ? <Loading /> : query.isError ? <LoadError query={query} /> : <>
       <div className="tax-summary-grid">{[['Total Tax Rules', taxes.length], ['Active Taxes', taxes.filter(t => t.status === 'Active').length], ['Inactive Taxes', taxes.filter(t => t.status === 'Inactive').length], ['Tax Types', new Set(taxes.map(t => t.type)).size]].map(([label, count]) => <div className="tax-summary-card" key={label}><span>{label}</span><strong>{count}</strong></div>)}</div>
       <section className="tax-card"><div className="tax-toolbar"><Field name="search" label="Search Tax" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or code" type="search" /><Field name="filter-type" label="Tax Type" options={['All', ...TAX_TYPES]} value={type} onChange={e => setType(e.target.value)} /><Field name="filter-status" label="Status" options={['All', 'Active', 'Inactive']} value={status} onChange={e => setStatus(e.target.value)} /></div>
@@ -78,8 +84,8 @@ function TaxForm({ initial, editing = false }) {
     }
     pending.current = true; setSaving(true); setSubmitError('');
     try {
-      await taxService.save(values, initial?.id);
-      await queryClient.invalidateQueries({ queryKey: ['tax-settings'] });
+      await activeTaxService.save(values, initial?.id);
+      await queryClient.invalidateQueries({ queryKey: taxQueryKey });
       navigate('/taxes', { state: { taxNotice: editing ? 'Tax updated successfully.' : 'Tax created successfully.' } });
     } catch (error) { setSubmitError(taxError(error)); }
     finally { pending.current = false; setSaving(false); }
@@ -89,7 +95,7 @@ function TaxForm({ initial, editing = false }) {
     ['calculation', 'Calculation Method', ['Inclusive', 'Exclusive']], ['priority', 'Priority', null, 'number'],
     ['effectiveFrom', 'Effective From', null, 'date'], ['effectiveTo', 'Effective To', null, 'date'], ['status', 'Status', ['Active', 'Inactive']],
   ];
-  return <><header className="tax-settings-header"><div><Link className="tax-edit" to="/taxes">← Tax Settings</Link><h1>{editing ? 'Edit Tax' : 'Add Tax'}</h1><p>Define a tax rule for invoice and billing calculations.</p></div></header><form className="tax-card tax-form" onSubmit={submit} noValidate><Alert severity="info">{TAX_CONTRACT_BLOCKER}</Alert><p className="tax-form-hint">Fields marked * are required.</p><fieldset disabled={saving}><div className="tax-form-grid">{fields.map(([name, label, options, type]) => <Field key={name} name={name} label={label} options={options ? ['', ...options] : undefined} type={type} value={values[name]} required={name !== 'effectiveTo'} error={errors[name]} onChange={event => { setValues(previous => ({ ...previous, [name]: event.target.value })); setErrors(previous => ({ ...previous, [name]: undefined })); }} {...(type === 'number' ? { min: 0, step: name === 'rate' ? 'any' : 1, ...(name === 'rate' ? { max: 100 } : {}) } : {})} />)}</div></fieldset>{submitError && <Alert severity="error">{submitError}</Alert>}<div className="tax-form-actions"><button className="tax-secondary-btn" type="button" disabled={saving} onClick={() => navigate('/taxes')}>Cancel</button><button className="tax-primary-btn" type="submit" disabled={saving}>{saving && <CircularProgress size={16} color="inherit" />}{saving ? 'Saving…' : editing ? 'Update Tax' : 'Save Tax'}</button></div></form></>;
+  return <><header className="tax-settings-header"><div><Link className="tax-edit" to="/taxes">← Tax Settings</Link><h1>{editing ? 'Edit Tax' : 'Add Tax'}</h1><p>Define a tax rule for invoice and billing calculations.</p></div></header><form className="tax-card tax-form" onSubmit={submit} noValidate><Alert severity="info">{demoMode ? demoNotice : TAX_CONTRACT_BLOCKER}</Alert><p className="tax-form-hint">Fields marked * are required.</p><fieldset disabled={saving}><div className="tax-form-grid">{fields.map(([name, label, options, type]) => <Field key={name} name={name} label={label} options={options ? ['', ...options] : undefined} type={type} value={values[name]} required={name !== 'effectiveTo'} error={errors[name]} onChange={event => { setValues(previous => ({ ...previous, [name]: event.target.value })); setErrors(previous => ({ ...previous, [name]: undefined })); }} {...(type === 'number' ? { min: 0, step: name === 'rate' ? 'any' : 1, ...(name === 'rate' ? { max: 100 } : {}) } : {})} />)}</div></fieldset>{submitError && <Alert severity="error">{submitError}</Alert>}<div className="tax-form-actions"><button className="tax-secondary-btn" type="button" disabled={saving} onClick={() => navigate('/taxes')}>Cancel</button><button className="tax-primary-btn" type="submit" disabled={saving}>{saving && <CircularProgress size={16} color="inherit" />}{saving ? 'Saving…' : editing ? 'Update Tax' : 'Save Tax'}</button></div></form></>;
 }
 function EditTax() {
   const { id } = useParams();

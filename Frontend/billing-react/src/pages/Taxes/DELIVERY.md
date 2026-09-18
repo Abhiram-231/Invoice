@@ -1,4 +1,9 @@
-﻿# Tax Settings delivery
+﻿## Current demo mode update
+
+The user subsequently requested smaller cards and mock data. Tax pages now default to an explicitly labeled demo mode with six sample rules, derived summaries, filters, and in-memory create/edit support. Demo changes reset on refresh and never call the backend. Set `VITE_TAX_DEMO_MODE=false` and restart/rebuild to restore the live service (still blocked by its unpublished backend contract). Demo and live query cache keys are separate. Added `taxDemoService.js`; compacted `TaxSettings.css` and updated `Taxes.jsx`. Demo list/create/edit/copy-isolation checks passed.
+
+The original delivery notes below describe the earlier live-only implementation.
+# Tax Settings delivery
 
 Scope: IBMSFE-001 through IBMSFE-004, frontend only. Existing `/taxes/*` route and navigation are preserved. No stored records were deleted; the previous tax screen contained only an empty placeholder.
 

@@ -2,6 +2,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Text.Json.Serialization;
 using Billing.API.Controllers;
+using Billing.API.Middleware;
 using Billing.Application;
 using Billing.Application.Common;
 using Billing.Application.Interfaces;
@@ -10,6 +11,7 @@ using Billing.Infrastructure.Data;
 using Billing.Infrastructure.Repositories;
 using Billing.Infrastructure.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -30,6 +32,21 @@ builder.Services.AddControllers()
     .ConfigureApiBehaviorOptions(options =>
     {
         options.SuppressMapClientErrors = true;
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(e => e.Value?.Errors.Count > 0)
+                .SelectMany(e => e.Value!.Errors.Select(x => string.IsNullOrWhiteSpace(x.ErrorMessage) ? "Invalid input value." : x.ErrorMessage))
+                .ToList();
+
+            var response = Billing.Contracts.ApiResponse<object>.Fail(
+                "One or more validation errors occurred.",
+                errors,
+                "VALIDATION_ERROR"
+            );
+
+            return new BadRequestObjectResult(response);
+        };
     });
 
 // ============================================================
@@ -124,6 +141,11 @@ builder.Services.AddScoped<IDiscountService, DiscountService>();
 builder.Services.AddScoped<IAuditService, AuditService>();
 builder.Services.AddScoped<ITaxSettingService, TaxSettingService>();
 builder.Services.AddScoped<ITaxCalculationService, TaxCalculationService>();
+builder.Services.AddScoped<IChargeSettingService, ChargeSettingService>();
+builder.Services.AddScoped<IChargeCalculationService, ChargeCalculationService>();
+builder.Services.AddScoped<INumberingSettingService, NumberingSettingService>();
+builder.Services.AddScoped<INumberGenerationService, NumberGenerationService>();
+builder.Services.AddScoped<IFinancialCalculationEngine, FinancialCalculationEngine>();
 builder.Services.AddScoped<LandingPageService>();
 
 // ============================================================
@@ -138,6 +160,8 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IDiscountRuleRepository, DiscountRuleRepository>();
 builder.Services.AddScoped<IAuditLogRepository, AuditLogRepository>();
 builder.Services.AddScoped<ITaxRepository, TaxRepository>();
+builder.Services.AddScoped<IChargeRepository, ChargeRepository>();
+builder.Services.AddScoped<INumberingRepository, NumberingRepository>();
 
 // ============================================================
 // Authentication / JWT
@@ -418,6 +442,9 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 app.UseCors("AllowAll");
+
+// Standardized API Error Handling Middleware (IBMSBE-020)
+app.UseMiddleware<StandardizedApiErrorMiddleware>();
 
 // Note: UseHttpsRedirection is removed to prevent 307 Temporary Redirect breaking reverse proxy (ngrok) and CORS preflight OPTIONS
 
