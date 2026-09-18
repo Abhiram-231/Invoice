@@ -21,6 +21,7 @@ import { ProductList } from '../pages/Products/ProductList';
 import { ProductDetails } from '../pages/Products/pages/ProductDetails';
 import { CreateProduct } from '../pages/Products/pages/CreateProduct';
 import { EditProduct } from '../pages/Products/pages/EditProduct';
+import { NumberingSettings } from '../pages/NumberingSettings';
 
 // ==============================
 // CUSTOMER MODULE
@@ -101,7 +102,8 @@ export const AppRoutes = () => (
       <Route path="/reports" element={<ModulePlaceholder />} />
       <Route path="/audit-activity" element={<ModulePlaceholder />} />
       <Route path="/templates-branding" element={<ModulePlaceholder />} />
-      <Route path="/invoice-numbering" element={<ModulePlaceholder />} />
+      <Route path="/invoice-numbering" element={<NumberingSettings />} />
+      <Route path="/settings/numbering" element={<NumberingSettings />} />
       <Route path="/integration-settings" element={<ModulePlaceholder />} />
       <Route path="/settings" element={<ModulePlaceholder />} />
       <Route path="/support" element={<ModulePlaceholder />} />
