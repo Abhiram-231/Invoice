@@ -6,14 +6,15 @@ const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 export const PRODUCT_TYPES = ['Product', 'Service','E-Commerce',];
 export const CURRENCIES = ['INR', 'USD', 'EUR'];
 export const TAX_CATEGORIES = ['GST 18%', 'GST 12%', 'GST 28%', 'GST 5%', 'GST 0%', 'Exempt'];
-export const STANDARD_UNITS = ['Piece','Set'];
+export const STANDARD_UNITS = ['Piece', 'Set', 'Others'];
 
 export const productValidationSchema = yup.object({
   // 1. Product Information
   productCode: yup
     .string()
     .trim()
-    .required('Product code is required')
+    .transform((value) => value === '' ? undefined : value)
+    .optional()
     .min(2, 'Product code must be at least 2 characters')
     .max(32, 'Product code must not exceed 32 characters')
     .matches(CODE_REGEX, 'Product code must contain only letters, numbers, hyphens, and underscores'),

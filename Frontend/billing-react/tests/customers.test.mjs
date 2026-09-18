@@ -106,7 +106,9 @@ test('audit keeps supplied changes and no invented user', async () => {
   response = [{ action: 'Updated', timestamp: '2026-09-09T00:00:00Z', changes: { name: 'Test' } }];
   const rows = await getCustomerAudit(1);
   assert.equal(calls[0].url, '/api/v1/customers/1/audit'); assert.equal(rows[0].user, undefined);
-  assert.equal(rows[0].newValue, '{"name":"Test"}');
+  assert.equal(rows[0].newValue, undefined);
+  assert.equal(rows[0].oldValue, undefined);
+  assert.equal(rows[0].changes, '{"name":"Test"}');
 });
 test('HTTP failures are safe and 401 clears authentication without retry', async () => {
   for (const [code,message] of [[400,'Invalid customer data'],[401,'Your session has expired'],[403,'You do not have permission'],[404,'Customer not found'],[500,'Server Error. Customer service is currently unavailable']]) {

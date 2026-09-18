@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Breadcrumbs, Button, CircularProgress } from '@mui/material';
+import { Alert, Breadcrumbs, Button, CircularProgress } from '@mui/material';
 import { ArrowBack, Inventory2Outlined } from '@mui/icons-material';
 import { productService } from '../services/productService';
 import { ProductForm } from '../components/ProductForm';
@@ -10,6 +10,7 @@ import '../styles/product-form.css';
 export function EditProduct() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
@@ -106,6 +107,8 @@ export function EditProduct() {
           Back to Products
         </Button>
       </header>
+
+      {location.state?.productNotice && <Alert severity="success">{location.state.productNotice}</Alert>}
 
       <ProductForm
         mode="edit"

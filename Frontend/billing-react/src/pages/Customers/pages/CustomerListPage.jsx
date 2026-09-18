@@ -28,7 +28,7 @@ export function CustomerListPage() {
   const summaryQuery = useCustomerSummary();
   const [url, setUrl] = useSearchParams();
   const params = { page: Math.max(1, Number(url.get('page')) || 1), pageSize: [10, 25, 50, 100].includes(Number(url.get('pageSize'))) ? Number(url.get('pageSize')) : 10,
-    taxId: url.get('taxId') || '', search: url.get('search') || '', sortBy: url.get('sortBy') || '', sortOrder: url.get('sortOrder') === 'desc' ? 'desc' : 'asc',
+    taxId: url.get('taxId') || '', search: url.get('search') || '', sortBy: url.get('sortBy') || 'customerCode', sortOrder: url.get('sortOrder') === 'desc' ? 'desc' : 'asc',
     ...Object.fromEntries(Object.entries(filterOptions).map(([key, option]) => [key, option.values.some(([value]) => value === url.get(key)) ? url.get(key) : ''])) };
   const [search, setSearch] = useState(params.search);
   const [taxId, setTaxId] = useState(params.taxId);
@@ -45,7 +45,7 @@ export function CustomerListPage() {
   const data = query.data;
   const visibleCustomers = data?.items || [];
   const reset = () => { setSearch(''); setTaxId(''); setUrl({}); };
-  const filtered = !!params.taxId || !!params.sortBy || !!params.search || Object.keys(filterOptions).some(key => !!params[key]);
+  const filtered = !!params.taxId || params.sortBy !== 'customerCode' || params.sortOrder !== 'asc' || !!params.search || Object.keys(filterOptions).some(key => !!params[key]);
   return <main className="customers-page">
     <nav className="customers-breadcrumb" aria-label="Breadcrumb"><strong aria-current="page">Customers</strong></nav>
     <header className="customers-heading"><div><h1>Customers</h1><p>Manage customer profiles, billing information and account activity.</p></div><Button variant="contained" startIcon={<Add />} onClick={() => navigate('/customers/create')}>Create Customer</Button></header>

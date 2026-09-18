@@ -229,7 +229,7 @@ export async function getCustomerAudit(id) {
     user: display(r.user ?? r.userName),
     entity: r.entity ?? r.fieldName,
     oldValue: display(r.oldValue ?? r.oldValues),
-    newValue: display(r.newValue ?? r.newValues ?? r.changes),
+    newValue: display(r.newValue ?? r.newValues),
     changes: display(r.changes),
   }));
 }

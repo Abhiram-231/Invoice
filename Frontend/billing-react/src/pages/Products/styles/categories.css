@@ -1,7 +1,7 @@
 .category-table table { min-width: 650px; }
 .category-table .category-description { white-space: normal; overflow-wrap: anywhere; max-width: 480px; color: #756763; }
 .category-table td:first-child { white-space: normal; overflow-wrap: anywhere; max-width: 240px; }
-.category-form { max-width: 900px; }
+.category-form { max-width: 100%; }
 .category-form .product-section-title { margin-bottom: 24px; }
 .category-form-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 12px; padding: 20px 24px; border-top: 1px solid #eee6e1; }
 @media (max-width: 600px) { .category-form-actions { padding: 16px; } }

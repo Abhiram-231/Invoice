@@ -73,3 +73,19 @@ test('disabled discounts default to zero and ignore hidden stale values', () => 
     assert.equal(result.discountPercentage, 0);
   }
 });
+
+
+test('new products can omit their code for server generation', async () => {
+  const data = productValidationSchema.validateSync({ ...valid, productCode: '' });
+  assert.equal(data.productCode, undefined);
+  const originalCreate = productApi.createProduct;
+  let sent;
+  productApi.createProduct = async payload => { sent = payload; return { id: 9, ...payload, productCode: 'PROD-12345678' }; };
+  try {
+    const result = await productApiService.createProduct(data);
+    assert.equal(Object.hasOwn(sent, 'productCode'), false);
+    assert.equal(result.productCode, 'PROD-12345678');
+  } finally {
+    productApi.createProduct = originalCreate;
+  }
+});

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { Alert, Button, CircularProgress, Collapse, Switch, useMediaQuery } from '@mui/material';
@@ -42,13 +42,16 @@ export function ProductForm({
   onCancel,
   mode = 'create',
 }) {
+  const [generatedCode] = useState(() => mode === 'create'
+    ? `PROD-${Array.from(crypto.getRandomValues(new Uint8Array(4)), byte => byte.toString(16).padStart(2, '0')).join('').toUpperCase()}`
+    : '');
   const reduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const categoriesQuery = useCategories();
   const categories = categoriesQuery.data || [];
   const getSanitizedInitialValues = (values) => {
-    if (!values) return DEFAULT_PRODUCT_VALUES;
+    if (!values) return { ...DEFAULT_PRODUCT_VALUES, productCode: generatedCode };
     return {
-      productCode: values.productCode || '',
+      productCode: values.productCode || generatedCode,
       name: values.name || '',
       description: values.description || '',
       type: values.type || 'Product',
@@ -112,7 +115,7 @@ export function ProductForm({
     const payload = {
       ...data,
       ...(initialValues?.rowVersion != null ? { rowVersion: initialValues.rowVersion } : {}),
-      productCode: data.productCode?.trim(),
+      productCode: mode === 'edit' ? initialValues?.productCode : data.productCode,
       name: data.name?.trim(),
       description: data.description?.trim() || '',
       categoryId: Number(data.categoryId),
@@ -159,12 +162,13 @@ export function ProductForm({
             {/* Product Code */}
             <div className="product-form-field">
               <label htmlFor="productCode" className="product-field-label">
-                Product Code <span className="product-field-required">*</span>
+                Product Code
               </label>
               <input
                 id="productCode"
                 type="text"
-                placeholder="e.g. PRD-101"
+                placeholder="Auto-generated product code"
+                readOnly
                 className={`product-input ${errors.productCode ? 'has-error' : ''}`}
                 aria-invalid={Boolean(errors.productCode)}
                 aria-describedby={errors.productCode ? 'productCode-err' : undefined}

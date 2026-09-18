@@ -19,9 +19,10 @@ export function CreateProduct() {
     setSubmitError('');
 
     try {
-      await productService.createProduct(formData);
+      const created = await productService.createProduct(formData);
       await queryClient.invalidateQueries({ queryKey: ['products'] });
-      navigate('/products', {
+      navigate(created?.id != null ? `/products/${encodeURIComponent(created.id)}/edit` : '/products', {
+        replace: true,
         state: { productNotice: `Product "${formData.name}" created successfully.` },
       });
     } catch (err) {
