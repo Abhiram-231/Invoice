@@ -58,7 +58,14 @@ public class ChargesController : ControllerBase
         if (!tenantId.HasValue) return Forbid();
 
         var result = await _chargeSettingService.CreateChargeAsync(request, tenantId.Value);
-        if (!result.Success) return BadRequest(result);
+        if (!result.Success)
+        {
+            if (result.ErrorCode == "CHARGE_CODE_EXISTS" || (result.Message != null && result.Message.Contains("already exists")))
+            {
+                return Conflict(result);
+            }
+            return BadRequest(result);
+        }
 
         return CreatedAtAction(nameof(GetChargeById), new { id = result.Data!.Id }, result);
     }

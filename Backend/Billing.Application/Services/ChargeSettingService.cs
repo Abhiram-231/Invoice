@@ -9,10 +9,14 @@ namespace Billing.Application.Services;
 public class ChargeSettingService : IChargeSettingService
 {
     private readonly IChargeRepository _chargeRepository;
+    private readonly IAuditLogRepository? _auditLogRepository;
 
-    public ChargeSettingService(IChargeRepository chargeRepository)
+    public ChargeSettingService(
+        IChargeRepository chargeRepository,
+        IAuditLogRepository? auditLogRepository = null)
     {
         _chargeRepository = chargeRepository;
+        _auditLogRepository = auditLogRepository;
     }
 
     public async Task<ApiResponse<List<ChargeConfigurationDto>>> GetChargesAsync(int tenantId, bool? activeOnly = null, string? chargeType = null)
@@ -59,7 +63,7 @@ public class ChargeSettingService : IChargeSettingService
         var existing = await _chargeRepository.GetByCodeAsync(code, tenantId);
         if (existing != null)
         {
-            return ApiResponse<ChargeConfigurationDto>.Fail($"Charge with code '{code}' already exists for this tenant.");
+            return ApiResponse<ChargeConfigurationDto>.Fail($"Charge with code '{code}' already exists for this tenant.", errorCode: "CHARGE_CODE_EXISTS");
         }
 
         if (!Enum.TryParse<ChargeType>(request.ChargeType, true, out var parsedChargeType))
@@ -91,6 +95,21 @@ public class ChargeSettingService : IChargeSettingService
         };
 
         var created = await _chargeRepository.AddAsync(charge);
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = created.Id.ToString(),
+                Action = "CREATE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Created charge '{created.Name}' ({created.Code}) with amount {created.Amount} and type {created.ChargeType}."
+            });
+        }
+
         return ApiResponse<ChargeConfigurationDto>.Ok(MapToDto(created), "Charge created successfully.");
     }
 
@@ -153,6 +172,21 @@ public class ChargeSettingService : IChargeSettingService
         charge.RowVersion = DateTime.UtcNow;
 
         var updated = await _chargeRepository.UpdateAsync(charge);
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = updated.Id.ToString(),
+                Action = "UPDATE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Updated charge '{updated.Name}' ({updated.Code}) with amount {updated.Amount} and status '{updated.Status}'."
+            });
+        }
+
         return ApiResponse<ChargeConfigurationDto>.Ok(MapToDto(updated), "Charge updated successfully.");
     }
 
@@ -163,10 +197,25 @@ public class ChargeSettingService : IChargeSettingService
             return ApiResponse<bool>.Fail("Invalid identifier", "Valid ID and Tenant ID are required.");
         }
 
+        var charge = await _chargeRepository.GetByIdAsync(id, tenantId);
         var success = await _chargeRepository.DeleteAsync(id, tenantId);
         if (!success)
         {
             return ApiResponse<bool>.Fail("Not found", $"Charge with ID {id} was not found.");
+        }
+
+        if (_auditLogRepository != null)
+        {
+            await _auditLogRepository.AddAsync(new AuditLog
+            {
+                TenantId = tenantId,
+                EntityName = "ChargeConfiguration",
+                EntityId = id.ToString(),
+                Action = "DELETE",
+                UserName = "System",
+                Timestamp = DateTime.UtcNow,
+                Changes = $"Deleted charge '{charge?.Name ?? id.ToString()}' ({charge?.Code ?? string.Empty})."
+            });
         }
 
         return ApiResponse<bool>.Ok(true, "Charge deleted successfully.");
