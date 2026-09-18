@@ -25,6 +25,9 @@ export const API_ENDPOINTS = {
     BY_ID: (id) => `/api/v1/categories/${encodeURIComponent(id)}`,
     STATUS: (id) => `/api/v1/categories/${encodeURIComponent(id)}/status`,
   },
+  SETTINGS: {
+    NUMBERING: '/api/v1/settings/numbering',
+  },
 };
 
 export default API_ENDPOINTS;

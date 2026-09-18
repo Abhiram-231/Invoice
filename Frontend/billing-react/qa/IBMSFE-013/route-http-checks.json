@@ -1,0 +1,37 @@
+[
+  {
+    "path": "/products",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/new",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/7",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/7/edit",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/categories",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/categories/new",
+    "status": 200,
+    "spaShell": true
+  },
+  {
+    "path": "/products/categories/7/edit",
+    "status": 200,
+    "spaShell": true
+  }
+]

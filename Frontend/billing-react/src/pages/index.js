@@ -5,3 +5,4 @@ export * from './ForgotPassword/ForgotPassword';
 export * from './VerifyOtp/VerifyOtp';
 export * from './ResetPassword/ResetPassword';
 export * from './Dashboard/Dashboard';
+export * from './NumberingSettings';

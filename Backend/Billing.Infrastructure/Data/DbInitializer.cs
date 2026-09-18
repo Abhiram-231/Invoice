@@ -71,6 +71,107 @@ public static class DbInitializer
                 await context.SaveChangesAsync();
                 logger?.LogInformation("Updated existing user {Email} with SuperAdmin,TenantAdmin roles", normalizedEmail);
             }
+
+            // 3. Ensure default Tax Settings & Standard Rates exist for tenant 1
+            var defaultSettings = await context.TaxSettings.FirstOrDefaultAsync(s => s.TenantId == 1);
+            if (defaultSettings == null)
+            {
+                defaultSettings = new TaxSetting
+                {
+                    TenantId = 1,
+                    IsTaxEnabled = true,
+                    DefaultTaxCalculation = "Exclusive",
+                    PricesIncludeTax = false,
+                    TaxNumberLabel = "GSTIN",
+                    EnableMultipleTaxes = true,
+                    State = "Telangana",
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+                await context.TaxSettings.AddAsync(defaultSettings);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Created default tax settings for tenant 1");
+            }
+
+            if (!await context.TaxRates.AnyAsync(r => r.TenantId == 1))
+            {
+                var defaultRates = new List<TaxRate>
+                {
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "GST 18%",
+                        Code = "GST_18",
+                        TaxType = "GST",
+                        Rate = 18.00m,
+                        Description = "Standard GST 18% (Auto splits into CGST 9% + SGST 9% for intra-state)",
+                        IsCompound = false,
+                        IsInclusive = false,
+                        ApplicationLevel = "Both",
+                        Priority = 1,
+                        Status = "Active"
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "CGST 9%",
+                        Code = "CGST_9",
+                        TaxType = "CGST",
+                        Rate = 9.00m,
+                        Description = "Central Goods and Services Tax 9%",
+                        IsCompound = false,
+                        IsInclusive = false,
+                        ApplicationLevel = "Item",
+                        Priority = 1,
+                        Status = "Active"
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "SGST 9%",
+                        Code = "SGST_9",
+                        TaxType = "SGST",
+                        Rate = 9.00m,
+                        Description = "State Goods and Services Tax 9%",
+                        IsCompound = false,
+                        IsInclusive = false,
+                        ApplicationLevel = "Item",
+                        Priority = 1,
+                        Status = "Active"
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "IGST 18%",
+                        Code = "IGST_18",
+                        TaxType = "IGST",
+                        Rate = 18.00m,
+                        Description = "Integrated Goods and Services Tax 18% for inter-state",
+                        IsCompound = false,
+                        IsInclusive = false,
+                        ApplicationLevel = "Both",
+                        Priority = 1,
+                        Status = "Active"
+                    },
+                    new()
+                    {
+                        TenantId = 1,
+                        Name = "VAT 5%",
+                        Code = "VAT_5",
+                        TaxType = "VAT",
+                        Rate = 5.00m,
+                        Description = "Standard VAT rate 5%",
+                        IsCompound = false,
+                        IsInclusive = false,
+                        ApplicationLevel = "Item",
+                        Priority = 1,
+                        Status = "Active"
+                    }
+                };
+
+                await context.TaxRates.AddRangeAsync(defaultRates);
+                await context.SaveChangesAsync();
+                logger?.LogInformation("Seeded default tax rates for tenant 1");
+            }
         }
         catch (Exception ex)
         {

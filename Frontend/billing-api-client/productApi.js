@@ -1,5 +1,6 @@
 import { apiClient } from './apiClient.js';
 import { API_ENDPOINTS } from './endpoints.js';
+import { productRequestError } from './productError.js';
 
 const ensureSuccess = (response) => {
   if (response?.success === false || response?.isSuccess === false) {
@@ -14,10 +15,7 @@ export const productApi = {
       const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.BASE, { params });
       return ensureSuccess(response);
     } catch (err) {
-      throw Object.assign(new Error(err.response?.data?.message || err.message || 'Failed to load products.'), {
-        code: err.code,
-        status: err.response?.status ?? err.status,
-      });
+      throw productRequestError(err, 'Failed to load products.');
     }
   },
 
@@ -31,10 +29,7 @@ export const productApi = {
       }
       return product;
     } catch (err) {
-      throw Object.assign(new Error(err.response?.data?.message || err.message || `Failed to load product with ID ${id}.`), {
-        code: err.code,
-        status: err.response?.status ?? err.status,
-      });
+      throw productRequestError(err, `Failed to load product with ID ${id}.`);
     }
   },
 
@@ -43,10 +38,7 @@ export const productApi = {
       const response = await apiClient.post(API_ENDPOINTS.PRODUCTS.BASE, data);
       return ensureSuccess(response);
     } catch (err) {
-      throw Object.assign(new Error(err.response?.data?.message || err.message || 'Failed to create product.'), {
-        code: err.code,
-        status: err.response?.status ?? err.status,
-      });
+      throw productRequestError(err, 'Failed to create product.');
     }
   },
 
@@ -56,10 +48,7 @@ export const productApi = {
       const response = await apiClient.put(endpoint, data);
       return ensureSuccess(response);
     } catch (err) {
-      throw Object.assign(new Error(err.response?.data?.message || err.message || 'Failed to update product.'), {
-        code: err.code,
-        status: err.response?.status ?? err.status,
-      });
+      throw productRequestError(err, 'Failed to update product.');
     }
   },
 
@@ -68,10 +57,7 @@ export const productApi = {
       const response = await apiClient.get(API_ENDPOINTS.PRODUCTS.NEXT_CODE);
       return ensureSuccess(response);
     } catch (err) {
-      throw Object.assign(new Error(err.response?.data?.message || err.message || 'Failed to generate next product code.'), {
-        code: err.code,
-        status: err.response?.status ?? err.status,
-      });
+      throw productRequestError(err, 'Failed to generate next product code.');
     }
   },
 };

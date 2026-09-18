@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { Alert, Breadcrumbs, Button, Snackbar, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from '@mui/material';
 import { Add, CategoryOutlined } from '@mui/icons-material';
@@ -15,7 +15,14 @@ export function CategoryList() {
   const [error, setError] = useState('');
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const [notice, setNotice] = useState(location.state?.categoryNotice || '');
+  useEffect(() => {
+    if (location.state?.categoryNotice) {
+      setNotice(location.state.categoryNotice);
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, location.pathname, navigate]);
   const [confirm, setConfirm] = useState(null);
   const changeStatus = async (category, status) => {
     if (busy) return;
@@ -44,12 +51,12 @@ export function CategoryList() {
             : categories.map(category => <TableRow key={category.id} hover>
             <TableCell><strong>{category.name}</strong></TableCell><TableCell className="category-description">{category.description || '—'}</TableCell>
             <TableCell><span className={`product-badge ${category.status.toLowerCase()}`}>{category.status}</span></TableCell>
-            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><Button component={Link} to={`/products/categories/${category.id}/edit`} size="small" aria-label={`Edit ${category.name}`}>Edit</Button><Button disabled={busy || category.status === 'Unknown'} size="small" aria-label={`${category.status === 'Active' ? 'Deactivate' : 'Activate'} ${category.name}`} onClick={() => category.status === 'Active' ? setConfirm(category) : changeStatus(category, 'Active')}>{category.status === 'Active' ? 'Deactivate' : 'Activate'}</Button></div></TableCell>
+            <TableCell>{category.productCount ?? '-'}</TableCell><TableCell><div className="product-row-actions"><Button component={Link} to={`/products/categories/${category.id}/edit`} size="small" aria-label={`Edit ${category.name}`}>Edit</Button><Button disabled={busy || category.status === 'Unknown'} size="small" aria-label={`${category.status === 'Active' ? 'Deactivate' : 'Activate'} ${category.name}`} onClick={() => setConfirm(category)}>{category.status === 'Active' ? 'Deactivate' : 'Activate'}</Button></div></TableCell>
           </TableRow>)}</TableBody>
         </Table>
       </TableContainer>
     </section>
-    <DeactivateCategoryDialog open={Boolean(confirm)} busy={busy} error={error} onClose={() => { setConfirm(null); setError(''); }} onConfirm={() => confirm && changeStatus(confirm, 'Inactive')} />
+    <DeactivateCategoryDialog open={Boolean(confirm)} activating={confirm?.status === 'Inactive'} busy={busy} error={error} onClose={() => { setConfirm(null); setError(''); }} onConfirm={() => confirm && changeStatus(confirm, confirm.status === 'Active' ? 'Inactive' : 'Active')} />
     <Snackbar open={Boolean(notice)} autoHideDuration={4000} onClose={() => setNotice('')}><Alert severity="success" onClose={() => setNotice('')}>{notice}</Alert></Snackbar>
   </main>;
 }

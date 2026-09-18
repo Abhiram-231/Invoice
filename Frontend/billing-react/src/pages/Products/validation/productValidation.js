@@ -1,6 +1,6 @@
 import * as yup from 'yup';
 
-const CODE_REGEX = /^[A-Za-z0-9_-]{2,32}$/;
+const CODE_REGEX = /^[A-Za-z0-9_-]{2,64}$/;
 const HSN_SAC_REGEX = /^[0-9]{4,8}$/;
 
 export const PRODUCT_TYPES = ['Product', 'Service','E-Commerce',];
@@ -16,7 +16,7 @@ export const productValidationSchema = yup.object({
     .transform((value) => value === '' ? undefined : value)
     .optional()
     .min(2, 'Product code must be at least 2 characters')
-    .max(32, 'Product code must not exceed 32 characters')
+    .max(64, 'Product code must not exceed 64 characters')
     .matches(CODE_REGEX, 'Product code must contain only letters, numbers, hyphens, and underscores'),
 
   name: yup
@@ -24,7 +24,7 @@ export const productValidationSchema = yup.object({
     .trim()
     .required('Product name is required')
     .min(2, 'Product name must be at least 2 characters')
-    .max(200, 'Product name must not exceed 200 characters'),
+    .max(256, 'Product name must not exceed 256 characters'),
 
   type: yup
     .string()
@@ -49,14 +49,15 @@ export const productValidationSchema = yup.object({
     .string()
     .trim()
     .required('Unit is required')
-    .max(50, 'Unit must not exceed 50 characters')
+    .max(32, 'Unit must not exceed 32 characters')
     .default('Piece'),
 
   price: yup
     .number()
     .typeError('Price must be a valid number')
     .required('Price is required')
-    .min(0, 'Price cannot be negative'),
+    .min(0, 'Price cannot be negative')
+    .max(999999999.99, 'Price must not exceed 999999999.99'),
 
   currency: yup
     .string()
@@ -65,7 +66,7 @@ export const productValidationSchema = yup.object({
 
   taxCategory: yup
     .string()
-    .oneOf(TAX_CATEGORIES, 'Select a valid tax category')
+    .oneOf(['', ...TAX_CATEGORIES], 'Select a valid tax category')
     .default('GST 18%'),
 
   hsnSac: yup
